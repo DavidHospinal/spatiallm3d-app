@@ -11,12 +11,14 @@ plugins {
 }
 
 kotlin {
-    androidTarget {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
-        }
-    }
-    
+    // Android target temporarily disabled until Android SDK is installed
+    // Uncomment after installing Android Studio and setting sdk.dir in local.properties
+    // androidTarget {
+    //     compilerOptions {
+    //         jvmTarget.set(JvmTarget.JVM_11)
+    //     }
+    // }
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -26,15 +28,15 @@ kotlin {
             isStatic = true
         }
     }
-    
+
     jvm()
     
     sourceSets {
-        androidMain.dependencies {
-            implementation(compose.preview)
-            implementation(libs.androidx.activity.compose)
-            implementation(libs.ktor.client.android)
-        }
+        // androidMain.dependencies {
+        //     implementation(compose.preview)
+        //     implementation(libs.androidx.activity.compose)
+        //     implementation(libs.ktor.client.android)
+        // }
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -65,32 +67,34 @@ kotlin {
     }
 }
 
-android {
-    namespace = "com.spatiallm3d"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
-
-    defaultConfig {
-        applicationId = "com.spatiallm3d"
-        minSdk = libs.versions.android.minSdk.get().toInt()
-        targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
-    }
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
-        }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-}
+// Android configuration temporarily disabled
+// Uncomment when Android SDK is installed
+// android {
+//     namespace = "com.spatiallm3d"
+//     compileSdk = libs.versions.android.compileSdk.get().toInt()
+//
+//     defaultConfig {
+//         applicationId = "com.spatiallm3d"
+//         minSdk = libs.versions.android.minSdk.get().toInt()
+//         targetSdk = libs.versions.android.targetSdk.get().toInt()
+//         versionCode = 1
+//         versionName = "1.0"
+//     }
+//     packaging {
+//         resources {
+//             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+//         }
+//     }
+//     buildTypes {
+//         getByName("release") {
+//             isMinifyEnabled = false
+//         }
+//     }
+//     compileOptions {
+//         sourceCompatibility = JavaVersion.VERSION_11
+//         targetCompatibility = JavaVersion.VERSION_11
+//     }
+// }
 
 dependencies {
     debugImplementation(compose.uiTooling)
