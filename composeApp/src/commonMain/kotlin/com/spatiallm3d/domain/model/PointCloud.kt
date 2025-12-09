@@ -12,7 +12,7 @@ package com.spatiallm3d.domain.model
 data class PointCloud(
     val points: List<Point3D>,
     val sourceType: SourceType,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = 0L
 ) {
     val pointCount: Int
         get() = points.size

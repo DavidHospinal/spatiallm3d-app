@@ -23,7 +23,7 @@ data class AnalysisResult(
         get() = buildString {
             append("Model: $modelVersion\n")
             append("Points: $pointCount\n")
-            append("Inference: ${String.format("%.2f", inferenceTime)}s\n")
+            append("Inference: ${inferenceTime}s\n")
             append("Detected: ${scene.walls.size} walls, ")
             append("${scene.doors.size} doors, ")
             append("${scene.windows.size} windows, ")
