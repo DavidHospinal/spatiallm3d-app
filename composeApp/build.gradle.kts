@@ -31,7 +31,12 @@ kotlin {
     }
 
     jvm()
-    
+
+    wasmJs {
+        browser()
+        binaries.executable()
+    }
+
     sourceSets {
         // androidMain.dependencies {
         //     implementation(compose.preview)
@@ -64,6 +69,9 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
             implementation(libs.ktor.client.cio)
+        }
+        wasmJsMain.dependencies {
+            implementation(libs.ktor.client.js)
         }
     }
 }
