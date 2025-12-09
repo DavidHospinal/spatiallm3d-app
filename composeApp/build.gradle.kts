@@ -97,9 +97,10 @@ kotlin {
 //     }
 // }
 
-dependencies {
-    debugImplementation(compose.uiTooling)
-}
+// Android-specific dependencies disabled
+// dependencies {
+//     debugImplementation(compose.uiTooling)
+// }
 
 compose.desktop {
     application {
