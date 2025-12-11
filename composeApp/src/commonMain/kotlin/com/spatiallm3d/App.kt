@@ -1,47 +1,79 @@
 package com.spatiallm3d
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.spatiallm3d.data.remote.client.SpatialLMClient
+import com.spatiallm3d.data.repository.MlRepositoryImpl
+import com.spatiallm3d.presentation.navigation.Screen
+import com.spatiallm3d.presentation.screens.AnalysisScreen
+import com.spatiallm3d.presentation.screens.HomeScreen
+import com.spatiallm3d.presentation.screens.ResultsScreenWithVisualization
+import com.spatiallm3d.presentation.viewmodel.SceneState
+import com.spatiallm3d.presentation.viewmodel.SceneViewModel
 
-import spatiallm3d.composeapp.generated.resources.Res
-import spatiallm3d.composeapp.generated.resources.compose_multiplatform
-
+/**
+ * Main application entry point.
+ *
+ * Manages navigation between screens and coordinates the ViewModel.
+ */
 @Composable
-@Preview
 fun App() {
     MaterialTheme {
-        var showContent by remember { mutableStateOf(false) }
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
+        // Initialize dependencies
+        val client = remember { SpatialLMClient() }
+        val repository = remember { MlRepositoryImpl(client) }
+        val viewModel = remember { SceneViewModel(repository) }
+
+        // Observe ViewModel state
+        val sceneState by viewModel.sceneState.collectAsStateWithLifecycle()
+
+        // Navigation state
+        var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
+
+        // Navigate based on scene state
+        LaunchedEffect(sceneState) {
+            when (sceneState) {
+                is SceneState.Loading -> currentScreen = Screen.Analysis
+                is SceneState.Success -> currentScreen = Screen.Results
+                is SceneState.Error -> currentScreen = Screen.Home
+                is SceneState.Idle -> { /* Stay on current screen */ }
             }
-            AnimatedVisibility(showContent) {
-                val greeting = remember { Greeting().greet() }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
+        }
+
+        // Display current screen
+        when (currentScreen) {
+            Screen.Home -> {
+                HomeScreen(
+                    onAnalyzeClick = {
+                        viewModel.analyzeScene(
+                            pointCloudUrl = "sample_scene.ply"
+                        )
+                    },
+                    onFileSelected = { plyContent ->
+                        // TODO: Parse PLY and send to backend
+                        // For now, trigger sample analysis
+                        viewModel.analyzeScene(
+                            pointCloudUrl = "custom_scene.ply"
+                        )
+                    }
+                )
+            }
+
+            Screen.Analysis -> {
+                AnalysisScreen()
+            }
+
+            Screen.Results -> {
+                val result = (sceneState as? SceneState.Success)?.result
+                if (result != null) {
+                    ResultsScreenWithVisualization(
+                        result = result,
+                        onBackToHome = {
+                            viewModel.resetState()
+                            currentScreen = Screen.Home
+                        }
+                    )
                 }
             }
         }
