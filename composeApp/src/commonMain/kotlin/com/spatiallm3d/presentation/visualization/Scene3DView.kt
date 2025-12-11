@@ -14,17 +14,26 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.spatiallm3d.domain.model.*
 
 /**
- * Interactive 3D scene visualization using isometric projection.
+ * Interactive 3D scene visualization using isometric projection with safety assessment.
  *
- * Renders walls, doors, windows, and object bounding boxes in a
- * 2D isometric view. Supports pan and zoom gestures on all platforms.
+ * Features:
+ * - Risk-based color coding (green/yellow/red)
+ * - Natural language object labels
+ * - Safety indicators for accessibility concerns
+ * - Interactive pan and zoom gestures
  *
  * @param sceneStructure Scene data to visualize
  * @param modifier Modifier for layout customization
@@ -36,6 +45,7 @@ fun Scene3DView(
 ) {
     var panOffset by remember { mutableStateOf(Offset.Zero) }
     var zoomLevel by remember { mutableStateOf(1f) }
+    val textMeasurer = rememberTextMeasurer()
 
     Surface(
         modifier = modifier
@@ -55,7 +65,7 @@ fun Scene3DView(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "3D Scene View",
+                        text = "3D Scene View - Safety Assessment",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -64,7 +74,7 @@ fun Scene3DView(
                     Spacer(modifier = Modifier.weight(1f))
 
                     Text(
-                        text = "Isometric Projection",
+                        text = "Drag to pan",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.7f)
                     )
@@ -124,9 +134,9 @@ fun Scene3DView(
                         drawWall(wall, scale, offsetX, offsetY)
                     }
 
-                    // Draw doors
+                    // Draw doors with safety colors
                     sceneStructure.doors.forEach { door ->
-                        drawDoor(door, scale, offsetX, offsetY)
+                        drawDoorWithSafety(door, scale, offsetX, offsetY, textMeasurer)
                     }
 
                     // Draw windows
@@ -134,13 +144,13 @@ fun Scene3DView(
                         drawWindow(window, scale, offsetX, offsetY)
                     }
 
-                    // Draw object bounding boxes
+                    // Draw object bounding boxes with natural language labels
                     sceneStructure.objects.forEach { obj ->
-                        drawBoundingBox(obj, scale, offsetX, offsetY)
+                        drawBoundingBoxWithLabel(obj, scale, offsetX, offsetY, textMeasurer)
                     }
                 }
 
-                // Legend
+                // Enhanced Legend with Safety Colors
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -151,10 +161,50 @@ fun Scene3DView(
                     Column(
                         modifier = Modifier.padding(12.dp)
                     ) {
-                        LegendItem("Walls", Color(0xFF64B5F6))
-                        LegendItem("Doors", Color(0xFF81C784))
+                        Text(
+                            text = "Safety Legend",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        LegendItem("Walls & Structure", Color(0xFF64B5F6))
+                        LegendItem("Safe Doorways", Color(0xFF4CAF50))
+                        LegendItem("Narrow Doorways", Color(0xFFFF9800))
+                        LegendItem("Accessibility Risk", Color(0xFFF44336))
                         LegendItem("Windows", Color(0xFFFFB74D))
-                        LegendItem("Objects", Color(0xFFE57373))
+                        LegendItem("Detected Objects", Color(0xFF9C27B0))
+                    }
+                }
+
+                // Safety Tips
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp),
+                    color = Color(0xCC000000),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp)
+                    ) {
+                        Text(
+                            text = "Accessibility Standards",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Standard doorway: 0.8m - 1.0m wide",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF4CAF50)
+                        )
+                        Text(
+                            text = "Wheelchair access: minimum 0.8m",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFFF9800)
+                        )
                     }
                 }
             }
@@ -185,7 +235,7 @@ private fun LegendItem(label: String, color: Color) {
 /**
  * Draws a reference grid on the floor plane.
  */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawGrid(
+private fun DrawScope.drawGrid(
     scale: Float,
     offsetX: Float,
     offsetY: Float
@@ -243,7 +293,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawGrid(
 /**
  * Draws a wall as a vertical plane.
  */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWall(
+private fun DrawScope.drawWall(
     wall: Wall,
     scale: Float,
     offsetX: Float,
@@ -287,34 +337,77 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWall(
 }
 
 /**
- * Draws a door marker.
+ * Draws a door marker with safety color coding.
+ * Green = safe, Yellow = narrow, Red = accessibility concern
  */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawDoor(
+private fun DrawScope.drawDoorWithSafety(
     door: Door,
     scale: Float,
     offsetX: Float,
-    offsetY: Float
+    offsetY: Float,
+    textMeasurer: androidx.compose.ui.text.TextMeasurer
 ) {
     val center = IsometricProjection.project(door.position, scale, offsetX, offsetY)
 
+    // Determine safety color based on door width
+    val (color, label) = when {
+        door.width >= 0.8f -> Color(0xFF4CAF50) to "Safe" // Green - wheelchair accessible
+        door.width >= 0.7f -> Color(0xFFFF9800) to "Narrow" // Orange - barely passable
+        else -> Color(0xFFF44336) to "Risk!" // Red - accessibility concern
+    }
+
+    // Draw door marker circle
     drawCircle(
-        color = Color(0xFF81C784),
-        radius = 8f,
+        color = color.copy(alpha = 0.6f),
+        radius = 12f,
         center = center
     )
 
     drawCircle(
-        color = Color(0xFF81C784),
-        radius = 8f,
+        color = color,
+        radius = 12f,
         center = center,
-        style = Stroke(width = 2f)
+        style = Stroke(width = 3f)
+    )
+
+    // Draw safety indicator icon (exclamation mark for risks)
+    if (door.width < 0.8f) {
+        val iconPath = Path().apply {
+            // Warning triangle
+            moveTo(center.x, center.y - 8f)
+            lineTo(center.x - 6f, center.y + 4f)
+            lineTo(center.x + 6f, center.y + 4f)
+            close()
+        }
+        drawPath(
+            path = iconPath,
+            color = Color.White,
+            style = Stroke(width = 2f)
+        )
+    }
+
+    // Draw natural language label
+    val labelText = "${door.width}m - $label"
+    val textLayoutResult = textMeasurer.measure(
+        text = labelText,
+        style = TextStyle(
+            color = Color.White,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            background = color.copy(alpha = 0.8f)
+        )
+    )
+
+    drawText(
+        textLayoutResult = textLayoutResult,
+        topLeft = Offset(center.x - textLayoutResult.size.width / 2, center.y + 16f)
     )
 }
 
 /**
  * Draws a window marker.
  */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWindow(
+private fun DrawScope.drawWindow(
     window: Window,
     scale: Float,
     offsetX: Float,
@@ -337,13 +430,14 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWindow(
 }
 
 /**
- * Draws an object bounding box.
+ * Draws an object bounding box with natural language label.
  */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBoundingBox(
+private fun DrawScope.drawBoundingBoxWithLabel(
     obj: BoundingBox,
     scale: Float,
     offsetX: Float,
-    offsetY: Float
+    offsetY: Float,
+    textMeasurer: androidx.compose.ui.text.TextMeasurer
 ) {
     val center = obj.position
     val halfScale = Point3D(obj.scale.x / 2, obj.scale.y / 2, obj.scale.z / 2)
@@ -364,7 +458,8 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBoundingBox(
         IsometricProjection.project(it, scale, offsetX, offsetY)
     }
 
-    val color = Color(0xFFE57373)
+    // Determine color based on object safety risk
+    val color = getObjectSafetyColor(obj.objectClass)
 
     // Draw bottom face
     drawLine(color, projected[0], projected[1], 2f)
@@ -383,4 +478,64 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBoundingBox(
     drawLine(color, projected[1], projected[5], 2f)
     drawLine(color, projected[2], projected[6], 2f)
     drawLine(color, projected[3], projected[7], 2f)
+
+    // Draw natural language label
+    val humanLabel = toHumanReadableLabel(obj.objectClass)
+    val confidence = (obj.confidence * 100).toInt()
+    val labelText = "$humanLabel ($confidence%)"
+
+    val textLayoutResult = textMeasurer.measure(
+        text = labelText,
+        style = TextStyle(
+            color = Color.White,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Medium,
+            background = color.copy(alpha = 0.85f)
+        )
+    )
+
+    // Position label above the bounding box
+    val labelPosition = projected[6] // Top-right corner
+    drawText(
+        textLayoutResult = textLayoutResult,
+        topLeft = Offset(
+            labelPosition.x - textLayoutResult.size.width / 2,
+            labelPosition.y - 20f
+        )
+    )
+}
+
+/**
+ * Determines safety color based on object type.
+ * Potential hazards (stairs, furniture) get warning colors.
+ */
+private fun getObjectSafetyColor(objectClass: String): Color {
+    return when (objectClass.lowercase()) {
+        "stairs", "staircase" -> Color(0xFFF44336) // Red - fall hazard
+        "chair", "table", "sofa", "furniture" -> Color(0xFFFF9800) // Orange - obstacle
+        "door", "window" -> Color(0xFF4CAF50) // Green - navigation point
+        else -> Color(0xFF9C27B0) // Purple - general object
+    }
+}
+
+/**
+ * Converts technical object class names to natural language.
+ */
+private fun toHumanReadableLabel(objectClass: String): String {
+    return when (objectClass.lowercase()) {
+        "chair" -> "Chair"
+        "table" -> "Table"
+        "sofa", "couch" -> "Sofa"
+        "bed" -> "Bed"
+        "door" -> "Doorway"
+        "window" -> "Window"
+        "stairs", "staircase" -> "Stairs (Caution)"
+        "cabinet", "wardrobe" -> "Cabinet"
+        "desk" -> "Desk"
+        "shelf", "shelves" -> "Shelf"
+        "tv", "television" -> "TV"
+        "plant" -> "Plant"
+        "lamp" -> "Lamp"
+        else -> objectClass.replaceFirstChar { it.uppercase() }
+    }
 }

@@ -15,13 +15,13 @@ import com.spatiallm3d.presentation.components.RecommendationCard
 import com.spatiallm3d.presentation.visualization.Scene3DView
 
 /**
- * Enhanced results screen with 3D visualization and accessibility insights.
+ * Enhanced results screen with 3D visualization and natural language accessibility insights.
  *
  * Shows:
- * - 3D scene visualization
- * - Accessibility score
- * - Safety recommendations
- * - Detailed detections list
+ * - 3D scene visualization with safety colors
+ * - Human-readable accessibility score
+ * - Actionable safety recommendations in plain English
+ * - Detailed detection list with natural descriptions
  *
  * @param result Analysis result
  * @param onBackToHome Callback to return home
@@ -50,7 +50,7 @@ fun ResultsScreenWithVisualization(
                     modifier = Modifier.padding(20.dp)
                 ) {
                     Text(
-                        text = "Scene Analysis Complete",
+                        text = "Your Home Analysis is Ready",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -61,9 +61,9 @@ fun ResultsScreenWithVisualization(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        InfoChip("Model: ${result.modelVersion}")
-                        InfoChip("Time: ${"%.2f".format(result.inferenceTime)}s")
-                        InfoChip("Points: ${result.pointCount}")
+                        InfoChip("Analyzed in ${"%.1f".format(result.inferenceTime)}s")
+                        InfoChip("${result.pointCount} data points")
+                        InfoChip("AI Model: ${result.modelVersion}")
                     }
                 }
             }
@@ -81,12 +81,12 @@ fun ResultsScreenWithVisualization(
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("Accessibility") }
+                    text = { Text("Safety Score") }
                 )
                 Tab(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    text = { Text("Details") }
+                    text = { Text("Full Report") }
                 )
             }
 
@@ -121,7 +121,7 @@ fun ResultsScreenWithVisualization(
                         .height(56.dp)
                 ) {
                     Text(
-                        text = "Analyze Another Scene",
+                        text = "Analyze Another Room",
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -155,28 +155,57 @@ private fun AccessibilityTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Calculate mock accessibility score (in real app, backend would provide this)
-        val score = calculateAccessibilityScore(result)
+        // Calculate accessibility score
+        val scoreResult = calculateDetailedAccessibilityScore(result)
 
         item {
             AccessibilityScoreCard(
-                score = score,
-                title = "Home Accessibility Score",
-                description = "Based on spatial analysis and safety standards"
+                score = scoreResult.score,
+                title = "Home Safety Score",
+                description = scoreResult.summary
             )
         }
 
         item {
             Text(
-                text = "Safety Recommendations",
+                text = "What This Means",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
         }
 
-        // Generate recommendations
-        items(generateRecommendations(result)) { recommendation ->
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = scoreResult.interpretation,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+        }
+
+        item {
+            Text(
+                text = "Recommended Actions",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        // Generate actionable recommendations
+        items(generateNaturalLanguageRecommendations(result)) { recommendation ->
             RecommendationCard(
                 title = recommendation.title,
                 description = recommendation.description,
@@ -187,10 +216,18 @@ private fun AccessibilityTab(
         item {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Detected Objects",
+                text = "Found in Your Space",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        item {
+            Text(
+                text = "We detected ${result.scene.objects.size} items in your room:",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
 
@@ -221,46 +258,62 @@ private fun DetailsTab(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            SectionHeader("Walls (${result.scene.walls.size})")
+            SectionHeader("Room Structure")
         }
-        items(result.scene.walls) { wall ->
-            DetailCard("Wall ${wall.id}", listOf(
-                "Length: ${"%.2f".format(wall.length)}m",
-                "Height: ${"%.2f".format(wall.height)}m",
-                "Area: ${"%.2f".format(wall.area)}m²"
+
+        item {
+            DetailCard("Walls", listOf(
+                "Found ${result.scene.walls.size} walls in this room",
+                "Total wall area: ${"%.1f".format(result.scene.walls.sumOf { it.area.toDouble() })} square meters",
+                "Average height: ${"%.2f".format(result.scene.walls.map { it.height }.average())} meters"
             ))
         }
 
         item {
-            SectionHeader("Doors (${result.scene.doors.size})")
+            SectionHeader("Entryways (${result.scene.doors.size})")
         }
+
         items(result.scene.doors) { door ->
-            DetailCard("Door ${door.id}", listOf(
-                "Wall: ${door.wallId}",
-                "Size: ${"%.2f".format(door.width)}m x ${"%.2f".format(door.height)}m",
-                "Standard: ${if (door.isStandardSize) "Yes" else "No"}"
+            val safetyStatus = when {
+                door.width >= 0.8f -> "Wheelchair accessible"
+                door.width >= 0.7f -> "Standard doorway"
+                else -> "May be too narrow for some users"
+            }
+
+            DetailCard("Doorway ${door.id.replace("door_", "#")}", listOf(
+                "Width: ${"%.2f".format(door.width)} meters (${"%.0f".format(door.width * 39.37)} inches)",
+                "Status: $safetyStatus",
+                "Height: ${"%.2f".format(door.height)} meters",
+                if (door.isStandardSize) "Meets standard building codes" else "Non-standard dimensions"
             ))
         }
 
         item {
             SectionHeader("Windows (${result.scene.windows.size})")
         }
+
         items(result.scene.windows) { window ->
-            DetailCard("Window ${window.id}", listOf(
-                "Wall: ${window.wallId}",
+            DetailCard("Window ${window.id.replace("window_", "#")}", listOf(
                 "Size: ${"%.2f".format(window.width)}m x ${"%.2f".format(window.height)}m",
-                "Area: ${"%.2f".format(window.area)}m²"
+                "Area: ${"%.2f".format(window.area)} square meters",
+                "Natural light source"
             ))
         }
 
         item {
-            SectionHeader("Objects (${result.scene.objects.size})")
+            SectionHeader("Furniture & Objects (${result.scene.objects.size})")
         }
+
         items(result.scene.objects) { obj ->
-            DetailCard(obj.objectClass.replaceFirstChar { it.uppercase() }, listOf(
-                "Confidence: ${(obj.confidence * 100).toInt()}%",
-                "Volume: ${"%.2f".format(obj.volume)}m³",
-                "Position: (${"%.1f".format(obj.position.x)}, ${"%.1f".format(obj.position.y)}, ${"%.1f".format(obj.position.z)})"
+            val humanName = toHumanReadableObjectName(obj.objectClass)
+            val confidence = (obj.confidence * 100).toInt()
+            val safetyNote = getObjectSafetyNote(obj.objectClass)
+
+            DetailCard(humanName, listOf(
+                "Detection confidence: $confidence%",
+                "Approximate size: ${"%.2f".format(obj.volume)} cubic meters",
+                "Location: (${"%.1f".format(obj.position.x)}m, ${"%.1f".format(obj.position.y)}m, ${"%.1f".format(obj.position.z)}m)",
+                safetyNote
             ))
         }
     }
@@ -296,30 +349,105 @@ private fun DetailCard(title: String, details: List<String>) {
             )
             details.forEach { detail ->
                 Text(
-                    text = detail,
+                    text = "• $detail",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    modifier = Modifier.padding(top = 2.dp)
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
         }
     }
 }
 
-// Helper functions
+// Helper data class for detailed scoring
+private data class AccessibilityScoreResult(
+    val score: Int,
+    val summary: String,
+    val interpretation: String
+)
 
-private fun calculateAccessibilityScore(result: AnalysisResult): Int {
+// Enhanced scoring with natural language feedback
+private fun calculateDetailedAccessibilityScore(result: AnalysisResult): AccessibilityScoreResult {
     var score = 100
+    val issues = mutableListOf<String>()
 
-    // Deduct points for narrow doors
-    result.scene.doors.forEach { door ->
-        if (!door.isStandardSize) score -= 10
+    // Check doorways for accessibility
+    val narrowDoors = result.scene.doors.count { it.width < 0.8f }
+    val veryNarrowDoors = result.scene.doors.count { it.width < 0.7f }
+
+    when {
+        veryNarrowDoors > 0 -> {
+            score -= 20
+            issues.add("$veryNarrowDoors very narrow doorway(s) detected")
+        }
+        narrowDoors > 0 -> {
+            score -= 10
+            issues.add("$narrowDoors doorway(s) may be difficult for wheelchair users")
+        }
     }
 
-    // Deduct points for many obstacles
-    if (result.scene.objects.size > 10) score -= 15
+    // Check for potential obstacles
+    val furnitureCount = result.scene.objects.count {
+        it.objectClass.lowercase() in listOf("chair", "table", "sofa", "desk", "cabinet")
+    }
 
-    return score.coerceIn(0, 100)
+    if (furnitureCount > 15) {
+        score -= 15
+        issues.add("High furniture density may limit mobility")
+    } else if (furnitureCount > 10) {
+        score -= 8
+        issues.add("Moderate furniture density")
+    }
+
+    // Check for hazards
+    val hasStairs = result.scene.objects.any {
+        it.objectClass.lowercase() in listOf("stairs", "staircase")
+    }
+
+    if (hasStairs) {
+        score -= 10
+        issues.add("Stairs present - fall hazard for some users")
+    }
+
+    val finalScore = score.coerceIn(0, 100)
+
+    val summary = when {
+        finalScore >= 90 -> "Excellent accessibility - well-designed space"
+        finalScore >= 75 -> "Good accessibility with minor areas for improvement"
+        finalScore >= 60 -> "Fair accessibility - some modifications recommended"
+        else -> "Accessibility concerns identified - improvements needed"
+    }
+
+    val interpretation = buildString {
+        append("Based on our analysis of ")
+        append("${result.scene.walls.size} walls, ")
+        append("${result.scene.doors.size} doorways, ")
+        append("and ${result.scene.objects.size} objects, ")
+
+        if (finalScore >= 85) {
+            append("your space is well-designed for accessibility. ")
+            append("The doorways are wide enough for wheelchairs, ")
+            append("and there's good circulation space.")
+        } else if (finalScore >= 65) {
+            append("your space has some accessibility features but could be improved. ")
+            if (issues.isNotEmpty()) {
+                append("Key concerns: ${issues.joinToString(", ")}. ")
+            }
+            append("Consider the recommendations below to make your space more accessible.")
+        } else {
+            append("your space has several accessibility challenges. ")
+            if (issues.isNotEmpty()) {
+                append("Major issues: ${issues.joinToString(", ")}. ")
+            }
+            append("We strongly recommend reviewing the safety recommendations below.")
+        }
+    }
+
+    return AccessibilityScoreResult(
+        score = finalScore,
+        summary = summary,
+        interpretation = interpretation
+    )
 }
 
 private data class Recommendation(
@@ -328,43 +456,117 @@ private data class Recommendation(
     val priority: String
 )
 
-private fun generateRecommendations(result: AnalysisResult): List<Recommendation> {
+// Generate natural language, actionable recommendations
+private fun generateNaturalLanguageRecommendations(result: AnalysisResult): List<Recommendation> {
     val recommendations = mutableListOf<Recommendation>()
 
-    // Check doors
+    // Check each door
     result.scene.doors.forEach { door ->
-        if (!door.isStandardSize) {
-            recommendations.add(
-                Recommendation(
-                    title = "Non-standard door detected",
-                    description = "Door ${door.id} is ${door.width}m wide. Standard wheelchair-accessible doors should be at least 0.8m wide.",
-                    priority = "HIGH"
+        when {
+            door.width < 0.7f -> {
+                recommendations.add(
+                    Recommendation(
+                        title = "Critical: Very Narrow Doorway",
+                        description = "Doorway ${door.id.replace("door_", "#")} is only ${door.width}m (${(door.width * 39.37).toInt()} inches) wide. This is too narrow for wheelchair access and may be difficult for people with mobility aids. Consider widening to at least 0.8m (32 inches) or consulting with a contractor about accessibility modifications.",
+                        priority = "HIGH"
+                    )
                 )
-            )
+            }
+            door.width < 0.8f -> {
+                recommendations.add(
+                    Recommendation(
+                        title = "Narrow Doorway Detected",
+                        description = "Doorway ${door.id.replace("door_", "#")} is ${door.width}m wide. While passable, this is below the recommended 0.8m (32 inches) for wheelchair accessibility. If this is a frequently used entrance, consider widening it for better access.",
+                        priority = "MEDIUM"
+                    )
+                )
+            }
         }
     }
 
     // Check for clutter
-    if (result.scene.objects.size > 15) {
+    val objectCount = result.scene.objects.size
+    if (objectCount > 15) {
         recommendations.add(
             Recommendation(
-                title = "High object density detected",
-                description = "Space contains ${result.scene.objects.size} objects. Consider reducing clutter to improve safety and mobility.",
+                title = "High Object Density",
+                description = "We detected $objectCount items in your space. While this isn't necessarily a problem, high furniture density can make navigation difficult, especially for people with mobility challenges. Consider decluttering or reorganizing to create clearer pathways.",
                 priority = "MEDIUM"
             )
         )
     }
 
-    // Add positive feedback
-    if (recommendations.isEmpty()) {
+    // Check for stairs
+    val hasStairs = result.scene.objects.any {
+        it.objectClass.lowercase() in listOf("stairs", "staircase")
+    }
+
+    if (hasStairs) {
         recommendations.add(
             Recommendation(
-                title = "Space is well-organized",
-                description = "No critical accessibility issues detected. The space appears safe and accessible.",
+                title = "Stairs Present - Fall Hazard",
+                description = "Stairs were detected in your space. These can be a fall hazard, especially for elderly individuals or those with mobility challenges. Consider adding handrails on both sides, ensuring good lighting, and using non-slip surfaces. If possible, ensure an alternative accessible route is available.",
+                priority = "HIGH"
+            )
+        )
+    }
+
+    // Add positive feedback if no major issues
+    if (recommendations.isEmpty() || recommendations.none { it.priority == "HIGH" }) {
+        recommendations.add(
+            0, // Insert at beginning
+            Recommendation(
+                title = "Well-Designed Space",
+                description = "Your space shows good accessibility features. All doorways meet or exceed standard width requirements, and there's adequate circulation space. Continue maintaining clear pathways and good lighting for optimal safety.",
                 priority = "LOW"
             )
         )
     }
 
+    // Add general safety tips
+    recommendations.add(
+        Recommendation(
+            title = "General Safety Tips",
+            description = "Ensure good lighting throughout the space, keep pathways clear of obstacles, secure loose rugs to prevent trips, and maintain at least 0.9m (36 inches) of clear passage width in hallways for comfortable navigation.",
+            priority = "LOW"
+        )
+    )
+
     return recommendations
+}
+
+// Convert technical names to user-friendly labels
+private fun toHumanReadableObjectName(objectClass: String): String {
+    return when (objectClass.lowercase()) {
+        "chair" -> "Chair"
+        "table" -> "Table"
+        "sofa", "couch" -> "Sofa"
+        "bed" -> "Bed"
+        "door" -> "Doorway"
+        "window" -> "Window"
+        "stairs", "staircase" -> "Staircase"
+        "cabinet", "wardrobe" -> "Storage Cabinet"
+        "desk" -> "Desk"
+        "shelf", "shelves" -> "Shelving Unit"
+        "tv", "television" -> "Television"
+        "plant" -> "Plant"
+        "lamp" -> "Lighting Fixture"
+        "refrigerator", "fridge" -> "Refrigerator"
+        "oven" -> "Oven"
+        "sink" -> "Sink"
+        else -> objectClass.split("_", "-")
+            .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
+    }
+}
+
+// Provide safety context for detected objects
+private fun getObjectSafetyNote(objectClass: String): String {
+    return when (objectClass.lowercase()) {
+        "stairs", "staircase" -> "Potential fall hazard - ensure handrails and good lighting"
+        "chair", "table" -> "Ensure adequate clearance around furniture for easy navigation"
+        "sofa", "couch" -> "Large furniture - maintain clear pathways around it"
+        "cabinet", "wardrobe" -> "Ensure stable and secured to wall if tall"
+        "rug", "carpet" -> "Ensure securely fastened to prevent trip hazards"
+        else -> "No specific safety concerns for this item"
+    }
 }
