@@ -80,7 +80,7 @@ object PlyParser {
         return PointCloud(
             points = points,
             sourceType = PointCloud.SourceType.FILE_UPLOAD,
-            timestamp = System.currentTimeMillis()
+            timestamp = 0L
         )
     }
 
@@ -109,7 +109,7 @@ object PlyParser {
         return PointCloud(
             points = downsampled,
             sourceType = PointCloud.SourceType.FILE_UPLOAD,
-            timestamp = System.currentTimeMillis()
+            timestamp = 0L
         )
     }
 }

@@ -16,6 +16,7 @@ import com.spatiallm3d.domain.model.BoundingBox
 import com.spatiallm3d.domain.model.Door
 import com.spatiallm3d.domain.model.Wall
 import com.spatiallm3d.domain.model.Window
+import com.spatiallm3d.utils.format
 
 /**
  * Results screen displaying all detected scene elements.
@@ -59,7 +60,7 @@ fun ResultsScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         MetadataChip("Model: ${result.modelVersion}")
-                        MetadataChip("Time: ${"%.2f".format(result.inferenceTime)}s")
+                        MetadataChip("Time: ${result.inferenceTime.format(2)}s")
                         MetadataChip("Points: ${result.pointCount}")
                     }
                 }
@@ -180,8 +181,8 @@ private fun WallCard(wall: Wall) {
 
             DetailRow("Start Point", "(${wall.startPoint.x}, ${wall.startPoint.y}, ${wall.startPoint.z})")
             DetailRow("End Point", "(${wall.endPoint.x}, ${wall.endPoint.y}, ${wall.endPoint.z})")
-            DetailRow("Height", "${"%.2f".format(wall.height)}m")
-            DetailRow("Length", "${"%.2f".format(wall.length)}m")
+            DetailRow("Height", "${wall.height.format(2)}m")
+            DetailRow("Length", "${wall.length.format(2)}m")
         }
     }
 }
@@ -209,8 +210,8 @@ private fun DoorCard(door: Door) {
 
             DetailRow("Wall", door.wallId)
             DetailRow("Position", "(${door.position.x}, ${door.position.y}, ${door.position.z})")
-            DetailRow("Dimensions", "${"%.2f".format(door.width)}m x ${"%.2f".format(door.height)}m")
-            DetailRow("Area", "${"%.2f".format(door.area)}m²")
+            DetailRow("Dimensions", "${door.width.format(2)}m x ${door.height.format(2)}m")
+            DetailRow("Area", "${door.area.format(2)}m²")
         }
     }
 }
@@ -238,8 +239,8 @@ private fun WindowCard(window: Window) {
 
             DetailRow("Wall", window.wallId)
             DetailRow("Position", "(${window.position.x}, ${window.position.y}, ${window.position.z})")
-            DetailRow("Dimensions", "${"%.2f".format(window.width)}m x ${"%.2f".format(window.height)}m")
-            DetailRow("Area", "${"%.2f".format(window.area)}m²")
+            DetailRow("Dimensions", "${window.width.format(2)}m x ${window.height.format(2)}m")
+            DetailRow("Area", "${window.area.format(2)}m²")
         }
     }
 }
@@ -273,7 +274,7 @@ private fun ObjectCard(obj: BoundingBox) {
                     color = MaterialTheme.colorScheme.primary
                 ) {
                     Text(
-                        text = "${"%.1f".format(obj.confidence * 100)}%",
+                        text = "${(obj.confidence * 100).format(1)}%",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,

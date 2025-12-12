@@ -2,6 +2,7 @@ package com.spatiallm3d.presentation.visualization
 
 import androidx.compose.ui.geometry.Offset
 import com.spatiallm3d.domain.model.Point3D
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -12,7 +13,7 @@ import kotlin.math.sin
  */
 object IsometricProjection {
 
-    private const val ISO_ANGLE = Math.PI / 6.0 // 30 degrees
+    private const val ISO_ANGLE = PI / 6.0 // 30 degrees
     private val COS_ANGLE = cos(ISO_ANGLE).toFloat()
     private val SIN_ANGLE = sin(ISO_ANGLE).toFloat()
 

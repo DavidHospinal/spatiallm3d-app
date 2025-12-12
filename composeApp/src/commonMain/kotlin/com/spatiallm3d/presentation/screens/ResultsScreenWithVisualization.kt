@@ -13,6 +13,7 @@ import com.spatiallm3d.presentation.components.AccessibilityScoreCard
 import com.spatiallm3d.presentation.components.ObjectCategoryChip
 import com.spatiallm3d.presentation.components.RecommendationCard
 import com.spatiallm3d.presentation.visualization.Scene3DView
+import com.spatiallm3d.utils.format
 
 /**
  * Enhanced results screen with 3D visualization and natural language accessibility insights.
@@ -61,7 +62,7 @@ fun ResultsScreenWithVisualization(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        InfoChip("Analyzed in ${"%.1f".format(result.inferenceTime)}s")
+                        InfoChip("Analyzed in ${result.inferenceTime.format(1)}s")
                         InfoChip("${result.pointCount} data points")
                         InfoChip("AI Model: ${result.modelVersion}")
                     }
@@ -264,8 +265,8 @@ private fun DetailsTab(
         item {
             DetailCard("Walls", listOf(
                 "Found ${result.scene.walls.size} walls in this room",
-                "Total wall area: ${"%.1f".format(result.scene.walls.sumOf { it.area.toDouble() })} square meters",
-                "Average height: ${"%.2f".format(result.scene.walls.map { it.height }.average())} meters"
+                "Total wall area: ${result.scene.walls.sumOf { it.area.toDouble() }.format(1)} square meters",
+                "Average height: ${result.scene.walls.map { it.height }.average().format(2)} meters"
             ))
         }
 
@@ -281,9 +282,9 @@ private fun DetailsTab(
             }
 
             DetailCard("Doorway ${door.id.replace("door_", "#")}", listOf(
-                "Width: ${"%.2f".format(door.width)} meters (${"%.0f".format(door.width * 39.37)} inches)",
+                "Width: ${door.width.format(2)} meters (${(door.width * 39.37).format(0)} inches)",
                 "Status: $safetyStatus",
-                "Height: ${"%.2f".format(door.height)} meters",
+                "Height: ${door.height.format(2)} meters",
                 if (door.isStandardSize) "Meets standard building codes" else "Non-standard dimensions"
             ))
         }
@@ -294,8 +295,8 @@ private fun DetailsTab(
 
         items(result.scene.windows) { window ->
             DetailCard("Window ${window.id.replace("window_", "#")}", listOf(
-                "Size: ${"%.2f".format(window.width)}m x ${"%.2f".format(window.height)}m",
-                "Area: ${"%.2f".format(window.area)} square meters",
+                "Size: ${window.width.format(2)}m x ${window.height.format(2)}m",
+                "Area: ${window.area.format(2)} square meters",
                 "Natural light source"
             ))
         }
@@ -311,8 +312,8 @@ private fun DetailsTab(
 
             DetailCard(humanName, listOf(
                 "Detection confidence: $confidence%",
-                "Approximate size: ${"%.2f".format(obj.volume)} cubic meters",
-                "Location: (${"%.1f".format(obj.position.x)}m, ${"%.1f".format(obj.position.y)}m, ${"%.1f".format(obj.position.z)}m)",
+                "Approximate size: ${obj.volume.format(2)} cubic meters",
+                "Location: (${obj.position.x.format(1)}m, ${obj.position.y.format(1)}m, ${obj.position.z.format(1)}m)",
                 safetyNote
             ))
         }

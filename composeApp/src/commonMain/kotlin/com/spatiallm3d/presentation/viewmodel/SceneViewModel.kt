@@ -74,6 +74,28 @@ class SceneViewModel(
     }
 
     /**
+     * Analyzes a locally parsed PointCloud.
+     *
+     * @param pointCloud Parsed point cloud data
+     */
+    fun analyzeLocalPointCloud(
+        pointCloud: com.spatiallm3d.domain.model.PointCloud
+    ) {
+        viewModelScope.launch {
+            _sceneState.value = SceneState.Loading
+
+            val result = mlRepository.analyzeScene(
+                pointCloud = pointCloud
+            )
+
+            _sceneState.value = result.fold(
+                onSuccess = { SceneState.Success(it) },
+                onFailure = { SceneState.Error(it.message ?: "Unknown error occurred") }
+            )
+        }
+    }
+
+    /**
      * Returns the current analysis result if state is Success, null otherwise.
      */
     fun getCurrentResult(): AnalysisResult? {

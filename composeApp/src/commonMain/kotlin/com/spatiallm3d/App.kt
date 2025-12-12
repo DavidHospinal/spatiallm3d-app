@@ -3,6 +3,7 @@ package com.spatiallm3d
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.spatiallm3d.data.parser.PlyParser
 import com.spatiallm3d.data.remote.client.SpatialLMClient
 import com.spatiallm3d.data.repository.MlRepositoryImpl
 import com.spatiallm3d.presentation.navigation.Screen
@@ -51,11 +52,13 @@ fun App() {
                         )
                     },
                     onFileSelected = { plyContent ->
-                        // TODO: Parse PLY and send to backend
-                        // For now, trigger sample analysis
-                        viewModel.analyzeScene(
-                            pointCloudUrl = "custom_scene.ply"
-                        )
+                        try {
+                            val pointCloud = PlyParser.parseDownsampled(plyContent, maxPoints = 50000)
+                            viewModel.analyzeLocalPointCloud(pointCloud)
+                        } catch (e: Exception) {
+                            viewModel.resetState()
+                            currentScreen = Screen.Home
+                        }
                     }
                 )
             }
