@@ -53,9 +53,21 @@ fun App() {
                     },
                     onFileSelected = { plyContent ->
                         try {
+                            println("PLY file received: ${plyContent.size} bytes")
                             val pointCloud = PlyParser.parseDownsampled(plyContent, maxPoints = 50000)
-                            viewModel.analyzeLocalPointCloud(pointCloud)
+                            println("PLY parsed: ${pointCloud.points.size} points")
+
+                            if (pointCloud.points.isEmpty()) {
+                                println("ERROR: PointCloud is empty after parsing")
+                                viewModel.resetState()
+                                currentScreen = Screen.Home
+                            } else {
+                                println("Analyzing point cloud...")
+                                viewModel.analyzeLocalPointCloud(pointCloud)
+                            }
                         } catch (e: Exception) {
+                            println("ERROR parsing PLY: ${e.message}")
+                            e.printStackTrace()
                             viewModel.resetState()
                             currentScreen = Screen.Home
                         }

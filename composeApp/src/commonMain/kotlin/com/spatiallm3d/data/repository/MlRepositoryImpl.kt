@@ -37,8 +37,10 @@ class MlRepositoryImpl(
 
     private fun generateMockAnalysisFromPointCloud(pointCloud: PointCloud): AnalysisResult {
         val pointCount = pointCloud.points.size
+        println("MlRepository: Generating mock analysis for $pointCount points")
 
         if (pointCloud.points.isEmpty()) {
+            println("MlRepository: PointCloud is empty, returning empty analysis")
             return createEmptyAnalysis()
         }
 
@@ -171,6 +173,8 @@ class MlRepositoryImpl(
             windows = windows,
             objects = objects
         )
+
+        println("MlRepository: Generated scene with ${walls.size} walls, ${doors.size} doors, ${windows.size} windows, ${objects.size} objects")
 
         return AnalysisResult(
             scene = scene,

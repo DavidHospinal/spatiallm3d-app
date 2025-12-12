@@ -18,15 +18,26 @@ object PlyParser {
      * @throws IllegalArgumentException if file format is invalid
      */
     fun parse(content: ByteArray): PointCloud {
-        val text = content.decodeToString()
-        val lines = text.lines()
+        println("PlyParser: Starting parse, content size = ${content.size} bytes")
 
-        if (lines.isEmpty() || lines[0].trim() != "ply") {
+        val text = try {
+            content.decodeToString()
+        } catch (e: Exception) {
+            println("PlyParser ERROR: Failed to decode bytes to string: ${e.message}")
+            throw IllegalArgumentException("Cannot decode PLY file - may be binary format (not supported)")
+        }
+
+        val lines = text.lines()
+        println("PlyParser: File has ${lines.size} lines")
+
+        if (lines.isEmpty() || !lines[0].trim().equals("ply", ignoreCase = true)) {
+            println("PlyParser ERROR: Missing 'ply' header, first line: '${lines.getOrNull(0)}'")
             throw IllegalArgumentException("Invalid PLY file: missing 'ply' header")
         }
 
         var vertexCount = 0
         var headerEnded = false
+        var isBinaryFormat = false
         val points = mutableListOf<Point3D>()
 
         // Parse header
@@ -38,14 +49,34 @@ object PlyParser {
                 break
             }
 
+            if (trimmed.startsWith("format")) {
+                if (trimmed.contains("binary")) {
+                    isBinaryFormat = true
+                    println("PlyParser ERROR: Binary PLY format detected (not supported)")
+                    throw IllegalArgumentException("Binary PLY format not supported. Please use ASCII format PLY files.")
+                }
+                println("PlyParser: Format detected: $trimmed")
+            }
+
             if (trimmed.startsWith("element vertex")) {
                 vertexCount = trimmed.split(" ")[2].toIntOrNull()
                     ?: throw IllegalArgumentException("Invalid vertex count")
+                println("PlyParser: Vertex count = $vertexCount")
             }
         }
 
         if (!headerEnded) {
+            println("PlyParser ERROR: Missing 'end_header'")
             throw IllegalArgumentException("Invalid PLY file: missing 'end_header'")
+        }
+
+        if (vertexCount == 0) {
+            println("PlyParser WARNING: Vertex count is 0")
+            return PointCloud(
+                points = emptyList(),
+                sourceType = PointCloud.SourceType.FILE_UPLOAD,
+                timestamp = 0L
+            )
         }
 
         // Parse vertex data
@@ -73,9 +104,14 @@ object PlyParser {
                     count++
                 } catch (e: NumberFormatException) {
                     // Skip invalid lines
+                    if (count < 10) {
+                        println("PlyParser: Skipping invalid line at index $count: '$line'")
+                    }
                 }
             }
         }
+
+        println("PlyParser: Successfully parsed ${points.size} points (expected $vertexCount)")
 
         return PointCloud(
             points = points,
