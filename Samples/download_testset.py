@@ -24,7 +24,7 @@ except ImportError:
     sys.exit(1)
 
 
-REPO_ID = "3dlg-hcvc/spatiallm-testset"
+REPO_ID = "manycore-research/SpatialLM-Testset"
 DEFAULT_COUNT = 5
 DEFAULT_OUTPUT_DIR = Path(__file__).parent
 
@@ -32,7 +32,7 @@ DEFAULT_OUTPUT_DIR = Path(__file__).parent
 def list_available_scenes(repo_id: str) -> list[str]:
     """List all PLY files available in the HuggingFace repository."""
     try:
-        all_files = list_repo_files(repo_id)
+        all_files = list_repo_files(repo_id, repo_type="dataset")
         ply_files = [f for f in all_files if f.endswith('.ply')]
         return sorted(ply_files)
     except Exception as e:
@@ -83,9 +83,9 @@ This directory contains {len(downloaded_files)} sample PLY files from the Spatia
 
 ## Dataset Source
 
-- Repository: HuggingFace `3dlg-hcvc/spatiallm-testset`
-- License: Check repository for licensing information
-- URL: https://huggingface.co/datasets/3dlg-hcvc/spatiallm-testset
+- Repository: HuggingFace `manycore-research/SpatialLM-Testset`
+- License: CC-BY-NC-4.0 (Non-commercial use, academic/educational projects allowed)
+- URL: https://huggingface.co/datasets/manycore-research/SpatialLM-Testset
 
 ## Files
 
