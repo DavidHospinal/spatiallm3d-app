@@ -38,59 +38,132 @@ class MlRepositoryImpl(
     private fun generateMockAnalysisFromPointCloud(pointCloud: PointCloud): AnalysisResult {
         val pointCount = pointCloud.points.size
 
-        val objects = listOf(
-            com.spatiallm3d.domain.model.BoundingBox(
+        if (pointCloud.points.isEmpty()) {
+            return createEmptyAnalysis()
+        }
+
+        val minX = pointCloud.points.minOf { it.x }
+        val maxX = pointCloud.points.maxOf { it.x }
+        val minY = pointCloud.points.minOf { it.y }
+        val maxY = pointCloud.points.maxOf { it.y }
+        val minZ = pointCloud.points.minOf { it.z }
+        val maxZ = pointCloud.points.maxOf { it.z }
+
+        val centerX = (minX + maxX) / 2f
+        val centerY = (minY + maxY) / 2f
+        val centerZ = (minZ + maxZ) / 2f
+
+        val roomWidth = maxX - minX
+        val roomDepth = maxY - minY
+        val roomHeight = maxZ - minZ
+
+        val objects = buildList {
+            add(com.spatiallm3d.domain.model.BoundingBox(
                 id = "bbox_0",
-                objectClass = "chair",
-                position = com.spatiallm3d.domain.model.Point3D(1.2f, 1.8f, 0.5f),
+                objectClass = "sofa",
+                position = com.spatiallm3d.domain.model.Point3D(minX + roomWidth * 0.2f, minY + roomDepth * 0.3f, minZ + 0.4f),
                 rotation = 0.0f,
-                scale = com.spatiallm3d.domain.model.Point3D(0.5f, 0.5f, 1.0f),
-                confidence = 0.92f
-            ),
-            com.spatiallm3d.domain.model.BoundingBox(
+                scale = com.spatiallm3d.domain.model.Point3D(0.9f, 1.8f, 0.8f),
+                confidence = 0.93f
+            ))
+            add(com.spatiallm3d.domain.model.BoundingBox(
                 id = "bbox_1",
-                objectClass = "table",
-                position = com.spatiallm3d.domain.model.Point3D(2.5f, 2.5f, 0.75f),
+                objectClass = "dining_table",
+                position = com.spatiallm3d.domain.model.Point3D(centerX, centerY, minZ + 0.75f),
                 rotation = 0.0f,
-                scale = com.spatiallm3d.domain.model.Point3D(1.0f, 1.5f, 0.8f),
-                confidence = 0.88f
-            )
-        )
+                scale = com.spatiallm3d.domain.model.Point3D(1.5f, 1.0f, 0.75f),
+                confidence = 0.91f
+            ))
+            add(com.spatiallm3d.domain.model.BoundingBox(
+                id = "bbox_2",
+                objectClass = "chair",
+                position = com.spatiallm3d.domain.model.Point3D(centerX + 0.8f, centerY, minZ + 0.5f),
+                rotation = 0.0f,
+                scale = com.spatiallm3d.domain.model.Point3D(0.5f, 0.5f, 0.95f),
+                confidence = 0.89f
+            ))
+            add(com.spatiallm3d.domain.model.BoundingBox(
+                id = "bbox_3",
+                objectClass = "chair",
+                position = com.spatiallm3d.domain.model.Point3D(centerX - 0.8f, centerY, minZ + 0.5f),
+                rotation = 0.0f,
+                scale = com.spatiallm3d.domain.model.Point3D(0.5f, 0.5f, 0.95f),
+                confidence = 0.87f
+            ))
+            add(com.spatiallm3d.domain.model.BoundingBox(
+                id = "bbox_4",
+                objectClass = "cabinet",
+                position = com.spatiallm3d.domain.model.Point3D(maxX - 0.5f, minY + roomDepth * 0.7f, minZ + 0.9f),
+                rotation = 0.0f,
+                scale = com.spatiallm3d.domain.model.Point3D(0.6f, 1.2f, 1.8f),
+                confidence = 0.85f
+            ))
+        }
 
-        val walls = listOf(
-            com.spatiallm3d.domain.model.Wall(
+        val walls = buildList {
+            add(com.spatiallm3d.domain.model.Wall(
                 id = "wall_0",
-                startPoint = com.spatiallm3d.domain.model.Point3D(0.0f, 0.0f, 0.0f),
-                endPoint = com.spatiallm3d.domain.model.Point3D(5.0f, 0.0f, 0.0f),
-                height = 2.7f
-            ),
-            com.spatiallm3d.domain.model.Wall(
+                startPoint = com.spatiallm3d.domain.model.Point3D(minX, minY, minZ),
+                endPoint = com.spatiallm3d.domain.model.Point3D(maxX, minY, minZ),
+                height = roomHeight.coerceAtLeast(2.5f)
+            ))
+            add(com.spatiallm3d.domain.model.Wall(
                 id = "wall_1",
-                startPoint = com.spatiallm3d.domain.model.Point3D(0.0f, 0.0f, 0.0f),
-                endPoint = com.spatiallm3d.domain.model.Point3D(0.0f, 4.0f, 0.0f),
-                height = 2.7f
-            )
-        )
+                startPoint = com.spatiallm3d.domain.model.Point3D(maxX, minY, minZ),
+                endPoint = com.spatiallm3d.domain.model.Point3D(maxX, maxY, minZ),
+                height = roomHeight.coerceAtLeast(2.5f)
+            ))
+            add(com.spatiallm3d.domain.model.Wall(
+                id = "wall_2",
+                startPoint = com.spatiallm3d.domain.model.Point3D(maxX, maxY, minZ),
+                endPoint = com.spatiallm3d.domain.model.Point3D(minX, maxY, minZ),
+                height = roomHeight.coerceAtLeast(2.5f)
+            ))
+            add(com.spatiallm3d.domain.model.Wall(
+                id = "wall_3",
+                startPoint = com.spatiallm3d.domain.model.Point3D(minX, maxY, minZ),
+                endPoint = com.spatiallm3d.domain.model.Point3D(minX, minY, minZ),
+                height = roomHeight.coerceAtLeast(2.5f)
+            ))
+        }
 
-        val doors = listOf(
-            com.spatiallm3d.domain.model.Door(
+        val doors = buildList {
+            add(com.spatiallm3d.domain.model.Door(
                 id = "door_0",
                 wallId = "wall_0",
-                position = com.spatiallm3d.domain.model.Point3D(2.5f, 0.0f, 1.0f),
-                width = 0.9f,
+                position = com.spatiallm3d.domain.model.Point3D(centerX, minY, minZ + 1.0f),
+                width = 0.85f,
                 height = 2.1f
-            )
-        )
+            ))
+            if (roomWidth > 4.0f) {
+                add(com.spatiallm3d.domain.model.Door(
+                    id = "door_1",
+                    wallId = "wall_2",
+                    position = com.spatiallm3d.domain.model.Point3D(centerX + roomWidth * 0.2f, maxY, minZ + 1.0f),
+                    width = 0.9f,
+                    height = 2.1f
+                ))
+            }
+        }
 
-        val windows = listOf(
-            com.spatiallm3d.domain.model.Window(
+        val windows = buildList {
+            add(com.spatiallm3d.domain.model.Window(
                 id = "window_0",
                 wallId = "wall_1",
-                position = com.spatiallm3d.domain.model.Point3D(0.0f, 2.0f, 1.5f),
+                position = com.spatiallm3d.domain.model.Point3D(maxX, centerY, minZ + 1.5f),
                 width = 1.2f,
-                height = 1.5f
-            )
-        )
+                height = 1.4f
+            ))
+            if (roomDepth > 3.0f) {
+                add(com.spatiallm3d.domain.model.Window(
+                    id = "window_1",
+                    wallId = "wall_3",
+                    position = com.spatiallm3d.domain.model.Point3D(minX, centerY + roomDepth * 0.2f, minZ + 1.5f),
+                    width = 1.0f,
+                    height = 1.2f
+                ))
+            }
+        }
 
         val scene = com.spatiallm3d.domain.model.SceneStructure(
             walls = walls,
@@ -132,5 +205,21 @@ class MlRepositoryImpl(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun createEmptyAnalysis(): AnalysisResult {
+        val emptyScene = com.spatiallm3d.domain.model.SceneStructure(
+            walls = emptyList(),
+            doors = emptyList(),
+            windows = emptyList(),
+            objects = emptyList()
+        )
+
+        return AnalysisResult(
+            scene = emptyScene,
+            inferenceTime = 0.0f,
+            modelVersion = "SpatialLM-Local-Mock",
+            pointCount = 0
+        )
     }
 }
