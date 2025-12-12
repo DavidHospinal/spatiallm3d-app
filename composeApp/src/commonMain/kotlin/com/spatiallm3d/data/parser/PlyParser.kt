@@ -20,42 +20,55 @@ object PlyParser {
     fun parse(content: ByteArray): PointCloud {
         println("PlyParser: Starting parse, content size = ${content.size} bytes")
 
-        val text = try {
-            content.decodeToString()
-        } catch (e: Exception) {
-            println("PlyParser ERROR: Failed to decode bytes to string: ${e.message}")
-            throw IllegalArgumentException("Cannot decode PLY file - may be binary format (not supported)")
+        // Read header as text to determine format
+        val headerEndMarker = "end_header\n".toByteArray()
+        var headerEndIndex = -1
+
+        for (i in 0..content.size - headerEndMarker.size) {
+            var match = true
+            for (j in headerEndMarker.indices) {
+                if (content[i + j] != headerEndMarker[j]) {
+                    match = false
+                    break
+                }
+            }
+            if (match) {
+                headerEndIndex = i + headerEndMarker.size
+                break
+            }
         }
 
-        val lines = text.lines()
-        println("PlyParser: File has ${lines.size} lines")
+        if (headerEndIndex == -1) {
+            println("PlyParser ERROR: Could not find end_header marker")
+            throw IllegalArgumentException("Invalid PLY file: missing end_header")
+        }
 
-        if (lines.isEmpty() || !lines[0].trim().equals("ply", ignoreCase = true)) {
-            println("PlyParser ERROR: Missing 'ply' header, first line: '${lines.getOrNull(0)}'")
+        val headerBytes = content.sliceArray(0 until headerEndIndex)
+        val headerText = headerBytes.decodeToString()
+        val headerLines = headerText.lines()
+
+        println("PlyParser: Found header with ${headerLines.size} lines")
+
+        if (headerLines.isEmpty() || !headerLines[0].trim().equals("ply", ignoreCase = true)) {
+            println("PlyParser ERROR: Missing 'ply' header")
             throw IllegalArgumentException("Invalid PLY file: missing 'ply' header")
         }
 
         var vertexCount = 0
-        var headerEnded = false
-        var isBinaryFormat = false
+        var isBinary = false
         val points = mutableListOf<Point3D>()
 
         // Parse header
-        for (line in lines) {
+        for (line in headerLines) {
             val trimmed = line.trim()
-
-            if (trimmed == "end_header") {
-                headerEnded = true
-                break
-            }
 
             if (trimmed.startsWith("format")) {
                 if (trimmed.contains("binary")) {
-                    isBinaryFormat = true
-                    println("PlyParser ERROR: Binary PLY format detected (not supported)")
-                    throw IllegalArgumentException("Binary PLY format not supported. Please use ASCII format PLY files.")
+                    isBinary = true
+                    println("PlyParser: Binary format detected")
+                } else {
+                    println("PlyParser: ASCII format detected")
                 }
-                println("PlyParser: Format detected: $trimmed")
             }
 
             if (trimmed.startsWith("element vertex")) {
@@ -63,11 +76,6 @@ object PlyParser {
                     ?: throw IllegalArgumentException("Invalid vertex count")
                 println("PlyParser: Vertex count = $vertexCount")
             }
-        }
-
-        if (!headerEnded) {
-            println("PlyParser ERROR: Missing 'end_header'")
-            throw IllegalArgumentException("Invalid PLY file: missing 'end_header'")
         }
 
         if (vertexCount == 0) {
@@ -79,11 +87,58 @@ object PlyParser {
             )
         }
 
-        // Parse vertex data
+        // Parse vertex data based on format
+        if (isBinary) {
+            println("PlyParser: Parsing binary vertex data from offset $headerEndIndex")
+            return parseBinaryVertices(content, headerEndIndex, vertexCount)
+        } else {
+            println("PlyParser: Parsing ASCII vertex data")
+            return parseAsciiVertices(headerLines, vertexCount)
+        }
+    }
+
+    private fun parseBinaryVertices(content: ByteArray, dataOffset: Int, vertexCount: Int): PointCloud {
+        val points = mutableListOf<Point3D>()
+        val bytesPerVertex = 12 // 3 floats * 4 bytes each (assuming only x,y,z)
+
+        var offset = dataOffset
+        for (i in 0 until vertexCount) {
+            if (offset + bytesPerVertex > content.size) {
+                println("PlyParser WARNING: Not enough data for all vertices, parsed ${points.size}/$vertexCount")
+                break
+            }
+
+            val x = readFloatLE(content, offset)
+            val y = readFloatLE(content, offset + 4)
+            val z = readFloatLE(content, offset + 8)
+
+            points.add(Point3D(x, y, z))
+            offset += bytesPerVertex
+        }
+
+        println("PlyParser: Successfully parsed ${points.size} binary points (expected $vertexCount)")
+
+        return PointCloud(
+            points = points,
+            sourceType = PointCloud.SourceType.FILE_UPLOAD,
+            timestamp = 0L
+        )
+    }
+
+    private fun readFloatLE(bytes: ByteArray, offset: Int): Float {
+        val intBits = (bytes[offset].toInt() and 0xFF) or
+                ((bytes[offset + 1].toInt() and 0xFF) shl 8) or
+                ((bytes[offset + 2].toInt() and 0xFF) shl 16) or
+                ((bytes[offset + 3].toInt() and 0xFF) shl 24)
+        return Float.fromBits(intBits)
+    }
+
+    private fun parseAsciiVertices(headerLines: List<String>, vertexCount: Int): PointCloud {
+        val points = mutableListOf<Point3D>()
         var count = 0
         var startParsing = false
 
-        for (line in lines) {
+        for (line in headerLines) {
             if (!startParsing) {
                 if (line.trim() == "end_header") {
                     startParsing = true
@@ -103,7 +158,6 @@ object PlyParser {
                     points.add(Point3D(x, y, z))
                     count++
                 } catch (e: NumberFormatException) {
-                    // Skip invalid lines
                     if (count < 10) {
                         println("PlyParser: Skipping invalid line at index $count: '$line'")
                     }
@@ -111,7 +165,7 @@ object PlyParser {
             }
         }
 
-        println("PlyParser: Successfully parsed ${points.size} points (expected $vertexCount)")
+        println("PlyParser: Successfully parsed ${points.size} ASCII points (expected $vertexCount)")
 
         return PointCloud(
             points = points,
