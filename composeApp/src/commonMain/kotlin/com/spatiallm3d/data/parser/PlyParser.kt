@@ -57,8 +57,10 @@ object PlyParser {
         var vertexCount = 0
         var isBinary = false
         val points = mutableListOf<Point3D>()
+        val vertexProperties = mutableListOf<Pair<String, String>>() // (type, name)
 
         // Parse header
+        var inVertexElement = false
         for (line in headerLines) {
             val trimmed = line.trim()
 
@@ -75,7 +77,24 @@ object PlyParser {
                 vertexCount = trimmed.split(" ")[2].toIntOrNull()
                     ?: throw IllegalArgumentException("Invalid vertex count")
                 println("PlyParser: Vertex count = $vertexCount")
+                inVertexElement = true
+            } else if (trimmed.startsWith("element")) {
+                inVertexElement = false
             }
+
+            if (inVertexElement && trimmed.startsWith("property")) {
+                val parts = trimmed.split(Regex("\\s+"))
+                if (parts.size >= 3) {
+                    val propertyType = parts[1]
+                    val propertyName = parts[2]
+                    vertexProperties.add(Pair(propertyType, propertyName))
+                }
+            }
+        }
+
+        println("PlyParser: Detected ${vertexProperties.size} vertex properties:")
+        vertexProperties.forEach { (type, name) ->
+            println("  - $name: $type")
         }
 
         if (vertexCount == 0) {
@@ -90,16 +109,35 @@ object PlyParser {
         // Parse vertex data based on format
         if (isBinary) {
             println("PlyParser: Parsing binary vertex data from offset $headerEndIndex")
-            return parseBinaryVertices(content, headerEndIndex, vertexCount)
+            return parseBinaryVertices(content, headerEndIndex, vertexCount, vertexProperties)
         } else {
             println("PlyParser: Parsing ASCII vertex data")
             return parseAsciiVertices(headerLines, vertexCount)
         }
     }
 
-    private fun parseBinaryVertices(content: ByteArray, dataOffset: Int, vertexCount: Int): PointCloud {
+    private fun parseBinaryVertices(
+        content: ByteArray,
+        dataOffset: Int,
+        vertexCount: Int,
+        properties: List<Pair<String, String>> // (type, name)
+    ): PointCloud {
         val points = mutableListOf<Point3D>()
-        val bytesPerVertex = 12 // 3 floats * 4 bytes each (assuming only x,y,z)
+
+        // Calculate bytes per vertex based on property types
+        var bytesPerVertex = 0
+        for ((type, _) in properties) {
+            bytesPerVertex += when (type) {
+                "float", "float32" -> 4
+                "double", "float64" -> 8
+                "uchar", "uint8", "char", "int8" -> 1
+                "ushort", "uint16", "short", "int16" -> 2
+                "uint", "uint32", "int", "int32" -> 4
+                else -> 4 // Default to 4 bytes
+            }
+        }
+
+        println("PlyParser: Calculated $bytesPerVertex bytes per vertex (${properties.size} properties)")
 
         var offset = dataOffset
         for (i in 0 until vertexCount) {
@@ -108,6 +146,7 @@ object PlyParser {
                 break
             }
 
+            // Read x, y, z (assume they are the first 3 properties and are floats)
             val x = readFloatLE(content, offset)
             val y = readFloatLE(content, offset + 4)
             val z = readFloatLE(content, offset + 8)
@@ -117,6 +156,12 @@ object PlyParser {
         }
 
         println("PlyParser: Successfully parsed ${points.size} binary points (expected $vertexCount)")
+        if (points.isNotEmpty()) {
+            println("PlyParser: First point: x=${points[0].x}, y=${points[0].y}, z=${points[0].z}")
+            if (points.size >= 2) {
+                println("PlyParser: Second point: x=${points[1].x}, y=${points[1].y}, z=${points[1].z}")
+            }
+        }
 
         return PointCloud(
             points = points,

@@ -87,6 +87,8 @@ object IsometricProjection {
         val minZ = points.minOf { it.z }
         val maxZ = points.maxOf { it.z }
 
+        println("IsometricProjection: Bounding box - X[$minX, $maxX], Y[$minY, $maxY], Z[$minZ, $maxZ]")
+
         // Project corners to 2D to find screen bounds
         val corners = listOf(
             Point3D(minX, minY, minZ),
@@ -109,10 +111,15 @@ object IsometricProjection {
         val sceneWidth = screenMaxX - screenMinX
         val sceneHeight = screenMaxY - screenMinY
 
+        println("IsometricProjection: Screen bounds - X[$screenMinX, $screenMaxX], Y[$screenMinY, $screenMaxY]")
+        println("IsometricProjection: Scene dimensions - width=$sceneWidth, height=$sceneHeight")
+
         // Calculate scale to fit with padding
         val scaleX = (canvasWidth - 2 * padding) / sceneWidth
         val scaleY = (canvasHeight - 2 * padding) / sceneHeight
         val scale = minOf(scaleX, scaleY)
+
+        println("IsometricProjection: Scale calculation - scaleX=$scaleX, scaleY=$scaleY, final scale=$scale")
 
         // Calculate center offset
         val sceneCenterX = (screenMinX + screenMaxX) / 2

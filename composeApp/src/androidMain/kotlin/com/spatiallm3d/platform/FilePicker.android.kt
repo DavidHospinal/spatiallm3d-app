@@ -53,7 +53,7 @@ actual class FilePicker actual constructor() {
  * Extension function to read PLY file from Android URI.
  * This would be used in the full implementation.
  */
-private suspend fun Activity.readPlyFromUri(uri: Uri, onResult: (FilePickerResult) -> Unit) {
+private fun Activity.readPlyFromUri(uri: Uri, onResult: (FilePickerResult) -> Unit) {
     try {
         // Get file name
         val fileName = contentResolver.query(uri, null, null, null, null)?.use { cursor ->

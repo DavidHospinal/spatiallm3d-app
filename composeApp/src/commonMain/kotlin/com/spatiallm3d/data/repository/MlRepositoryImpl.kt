@@ -51,6 +51,8 @@ class MlRepositoryImpl(
         val minZ = pointCloud.points.minOf { it.z }
         val maxZ = pointCloud.points.maxOf { it.z }
 
+        println("MlRepository: PointCloud bounding box - X[$minX, $maxX], Y[$minY, $maxY], Z[$minZ, $maxZ]")
+
         val centerX = (minX + maxX) / 2f
         val centerY = (minY + maxY) / 2f
         val centerZ = (minZ + maxZ) / 2f
@@ -58,6 +60,9 @@ class MlRepositoryImpl(
         val roomWidth = maxX - minX
         val roomDepth = maxY - minY
         val roomHeight = maxZ - minZ
+
+        println("MlRepository: Room dimensions - width=$roomWidth, depth=$roomDepth, height=$roomHeight")
+        println("MlRepository: Center point - ($centerX, $centerY, $centerZ)")
 
         val objects = buildList {
             add(com.spatiallm3d.domain.model.BoundingBox(
@@ -102,31 +107,38 @@ class MlRepositoryImpl(
             ))
         }
 
+        val wallHeight = roomHeight.coerceAtLeast(2.5f)
+
         val walls = buildList {
             add(com.spatiallm3d.domain.model.Wall(
                 id = "wall_0",
                 startPoint = com.spatiallm3d.domain.model.Point3D(minX, minY, minZ),
                 endPoint = com.spatiallm3d.domain.model.Point3D(maxX, minY, minZ),
-                height = roomHeight.coerceAtLeast(2.5f)
+                height = wallHeight
             ))
             add(com.spatiallm3d.domain.model.Wall(
                 id = "wall_1",
                 startPoint = com.spatiallm3d.domain.model.Point3D(maxX, minY, minZ),
                 endPoint = com.spatiallm3d.domain.model.Point3D(maxX, maxY, minZ),
-                height = roomHeight.coerceAtLeast(2.5f)
+                height = wallHeight
             ))
             add(com.spatiallm3d.domain.model.Wall(
                 id = "wall_2",
                 startPoint = com.spatiallm3d.domain.model.Point3D(maxX, maxY, minZ),
                 endPoint = com.spatiallm3d.domain.model.Point3D(minX, maxY, minZ),
-                height = roomHeight.coerceAtLeast(2.5f)
+                height = wallHeight
             ))
             add(com.spatiallm3d.domain.model.Wall(
                 id = "wall_3",
                 startPoint = com.spatiallm3d.domain.model.Point3D(minX, maxY, minZ),
                 endPoint = com.spatiallm3d.domain.model.Point3D(minX, minY, minZ),
-                height = roomHeight.coerceAtLeast(2.5f)
+                height = wallHeight
             ))
+        }
+
+        println("MlRepository: Generated ${walls.size} walls with height=$wallHeight")
+        walls.forEachIndexed { i, wall ->
+            println("  Wall $i: start=${wall.startPoint}, end=${wall.endPoint}")
         }
 
         val doors = buildList {

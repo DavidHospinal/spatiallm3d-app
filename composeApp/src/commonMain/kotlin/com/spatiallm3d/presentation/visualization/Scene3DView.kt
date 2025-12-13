@@ -43,6 +43,8 @@ fun Scene3DView(
     sceneStructure: SceneStructure,
     modifier: Modifier = Modifier
 ) {
+    println("Scene3DView: Rendering with ${sceneStructure.walls.size} walls, ${sceneStructure.doors.size} doors, ${sceneStructure.windows.size} windows, ${sceneStructure.objects.size} objects")
+
     var panOffset by remember { mutableStateOf(Offset.Zero) }
     var zoomLevel by remember { mutableStateOf(1f) }
     val textMeasurer = rememberTextMeasurer()
@@ -111,7 +113,10 @@ fun Scene3DView(
                         }
                     }
 
+                    println("Scene3DView Canvas: Collected ${allPoints.size} points from scene")
+
                     if (allPoints.isEmpty()) {
+                        println("Scene3DView Canvas: allPoints is EMPTY - returning early")
                         return@Canvas
                     }
 
@@ -122,9 +127,13 @@ fun Scene3DView(
                         padding = 80f
                     )
 
+                    println("Scene3DView Canvas: Viewport calculated - baseScale=$baseScale, centerOffset=$centerOffset, canvas=${canvasWidth}x${canvasHeight}")
+
                     val scale = baseScale * zoomLevel
                     val offsetX = centerOffset.x + panOffset.x
                     val offsetY = centerOffset.y + panOffset.y
+
+                    println("Scene3DView Canvas: Final transform - scale=$scale, offset=($offsetX, $offsetY)")
 
                     // Draw grid (floor reference)
                     drawGrid(scale, offsetX, offsetY)
