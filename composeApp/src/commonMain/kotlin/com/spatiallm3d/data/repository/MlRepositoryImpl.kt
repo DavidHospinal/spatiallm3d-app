@@ -51,7 +51,7 @@ class MlRepositoryImpl(
             if (demoDataSource == null) {
                 println("MlRepository: ⚠️ Demo mode enabled but DemoDataSource not provided")
                 println("  Falling back to local mock generation")
-                return Result.success(generateMockAnalysisFromPointCloud(PointCloud(emptyList(), com.spatiallm3d.domain.model.SourceType.LOCAL_FILE)))
+                return Result.success(generateMockAnalysisFromPointCloud(PointCloud(emptyList(), PointCloud.SourceType.FILE_UPLOAD)))
             }
 
             // Cargar escenas si no están en cache
