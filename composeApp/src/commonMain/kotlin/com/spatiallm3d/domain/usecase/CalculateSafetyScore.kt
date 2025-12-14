@@ -2,6 +2,9 @@ package com.spatiallm3d.domain.usecase
 
 import com.spatiallm3d.domain.model.AnalysisResult
 import com.spatiallm3d.domain.model.SafetyReport
+import com.spatiallm3d.domain.model.SafetyCheck
+import com.spatiallm3d.domain.model.SafetyLevel
+import com.spatiallm3d.domain.model.SafetySeverity
 
 /**
  * Use Case: Calcula el Safety Score basado en los resultados del análisis.
@@ -225,43 +228,4 @@ class CalculateSafetyScore {
 
         return recommendations
     }
-}
-
-// ============================================================
-// Data Classes
-// ============================================================
-
-data class SafetyReport(
-    val score: Float,              // 0-100
-    val level: SafetyLevel,
-    val checks: List<SafetyCheck>,
-    val objectsDetected: Int,
-    val wallsDetected: Int,
-    val doorsDetected: Int,
-    val windowsDetected: Int,
-    val recommendations: List<String>
-)
-
-data class SafetyCheck(
-    val category: String,          // "Accessibility", "Ventilation", etc.
-    val description: String,
-    val passed: Boolean,
-    val severity: SafetySeverity,
-    val penaltyPoints: Int
-)
-
-enum class SafetyLevel {
-    EXCELLENT,   // 90-100
-    GOOD,        // 75-89
-    MODERATE,    // 60-74
-    POOR,        // 40-59
-    CRITICAL     // 0-39
-}
-
-enum class SafetySeverity {
-    NONE,
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL
 }
