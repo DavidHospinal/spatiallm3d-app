@@ -54,6 +54,22 @@ class SpatialLMClient(
     }
 
     /**
+     * Get pre-computed analysis results by scene ID.
+     *
+     * This method allows fetching results without uploading the entire PLY file.
+     * Useful for demo/contest mode with known scenes.
+     *
+     * @param sceneId Scene identifier without .ply extension (e.g., "scene0000_00")
+     * @return AnalysisResponseDto with pre-computed data from backend
+     * @throws ClientRequestException if scene not found (404)
+     * @throws Exception if network request fails
+     */
+    suspend fun getPrecomputedResult(sceneId: String): AnalysisResponseDto {
+        println("SpatialLMClient: Fetching pre-computed result for $sceneId")
+        return httpClient.get("$baseUrl/api/v1/precomputed/$sceneId").body()
+    }
+
+    /**
      * Checks if the backend API is healthy and reachable.
      *
      * @return true if API responds with healthy status

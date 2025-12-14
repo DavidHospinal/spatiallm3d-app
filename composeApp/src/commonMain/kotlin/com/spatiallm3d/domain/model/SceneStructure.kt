@@ -1,5 +1,7 @@
 package com.spatiallm3d.domain.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * Represents the complete structural analysis of a 3D scene.
  *
@@ -11,6 +13,7 @@ package com.spatiallm3d.domain.model
  * @property windows List of detected windows
  * @property objects List of detected objects with bounding boxes
  */
+@Serializable
 data class SceneStructure(
     val walls: List<Wall>,
     val doors: List<Door>,

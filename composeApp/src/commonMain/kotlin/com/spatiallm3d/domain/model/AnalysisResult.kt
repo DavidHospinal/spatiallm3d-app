@@ -1,5 +1,7 @@
 package com.spatiallm3d.domain.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * Complete result of a 3D scene analysis operation.
  *
@@ -10,6 +12,7 @@ package com.spatiallm3d.domain.model
  * @property modelVersion Version identifier of the SpatialLM model used
  * @property pointCount Number of points in the analyzed point cloud
  */
+@Serializable
 data class AnalysisResult(
     val scene: SceneStructure,
     val inferenceTime: Float,

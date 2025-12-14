@@ -14,10 +14,11 @@ object PlyParser {
      * Parses a PLY file from byte array content.
      *
      * @param content PLY file content as bytes
+     * @param filename Optional filename for backend lookup (e.g., "scene0000_00.ply")
      * @return PointCloud with parsed points
      * @throws IllegalArgumentException if file format is invalid
      */
-    fun parse(content: ByteArray): PointCloud {
+    fun parse(content: ByteArray, filename: String? = null): PointCloud {
         println("PlyParser: Starting parse, content size = ${content.size} bytes")
 
         // Read header as text to determine format
@@ -102,17 +103,18 @@ object PlyParser {
             return PointCloud(
                 points = emptyList(),
                 sourceType = PointCloud.SourceType.FILE_UPLOAD,
-                timestamp = 0L
+                timestamp = 0L,
+                filename = filename
             )
         }
 
         // Parse vertex data based on format
         if (isBinary) {
             println("PlyParser: Parsing binary vertex data from offset $headerEndIndex")
-            return parseBinaryVertices(content, headerEndIndex, vertexCount, vertexProperties)
+            return parseBinaryVertices(content, headerEndIndex, vertexCount, vertexProperties, filename)
         } else {
             println("PlyParser: Parsing ASCII vertex data")
-            return parseAsciiVertices(headerLines, vertexCount)
+            return parseAsciiVertices(headerLines, vertexCount, filename)
         }
     }
 
@@ -120,7 +122,8 @@ object PlyParser {
         content: ByteArray,
         dataOffset: Int,
         vertexCount: Int,
-        properties: List<Pair<String, String>> // (type, name)
+        properties: List<Pair<String, String>>, // (type, name)
+        filename: String? = null
     ): PointCloud {
         val points = mutableListOf<Point3D>()
 
@@ -166,7 +169,8 @@ object PlyParser {
         return PointCloud(
             points = points,
             sourceType = PointCloud.SourceType.FILE_UPLOAD,
-            timestamp = 0L
+            timestamp = 0L,
+            filename = filename
         )
     }
 
@@ -178,7 +182,11 @@ object PlyParser {
         return Float.fromBits(intBits)
     }
 
-    private fun parseAsciiVertices(headerLines: List<String>, vertexCount: Int): PointCloud {
+    private fun parseAsciiVertices(
+        headerLines: List<String>,
+        vertexCount: Int,
+        filename: String? = null
+    ): PointCloud {
         val points = mutableListOf<Point3D>()
         var count = 0
         var startParsing = false
@@ -215,7 +223,8 @@ object PlyParser {
         return PointCloud(
             points = points,
             sourceType = PointCloud.SourceType.FILE_UPLOAD,
-            timestamp = 0L
+            timestamp = 0L,
+            filename = filename
         )
     }
 
@@ -226,10 +235,15 @@ object PlyParser {
      *
      * @param content PLY file content
      * @param maxPoints Maximum number of points to keep
+     * @param filename Optional filename for backend lookup (e.g., "scene0000_00.ply")
      * @return Downsampled PointCloud
      */
-    fun parseDownsampled(content: ByteArray, maxPoints: Int = 10000): PointCloud {
-        val fullCloud = parse(content)
+    fun parseDownsampled(
+        content: ByteArray,
+        maxPoints: Int = 10000,
+        filename: String? = null
+    ): PointCloud {
+        val fullCloud = parse(content, filename)
 
         if (fullCloud.points.size <= maxPoints) {
             return fullCloud
@@ -244,7 +258,8 @@ object PlyParser {
         return PointCloud(
             points = downsampled,
             sourceType = PointCloud.SourceType.FILE_UPLOAD,
-            timestamp = 0L
+            timestamp = 0L,
+            filename = filename
         )
     }
 }

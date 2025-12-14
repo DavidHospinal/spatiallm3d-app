@@ -8,11 +8,13 @@ package com.spatiallm3d.domain.model
  * @property points List of 3D points
  * @property sourceType Origin of the point cloud (AR_CAPTURE, FILE_UPLOAD, DEMO)
  * @property timestamp When the point cloud was created (Unix epoch milliseconds)
+ * @property filename Optional filename for backend lookup (e.g., "scene0000_00.ply")
  */
 data class PointCloud(
     val points: List<Point3D>,
     val sourceType: SourceType,
-    val timestamp: Long = 0L
+    val timestamp: Long = 0L,
+    val filename: String? = null
 ) {
     val pointCount: Int
         get() = points.size

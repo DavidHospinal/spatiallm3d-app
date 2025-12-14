@@ -3,21 +3,31 @@ package com.spatiallm3d.data.repository
 import com.spatiallm3d.data.remote.client.SpatialLMClient
 import com.spatiallm3d.data.remote.dto.AnalysisRequestDto
 import com.spatiallm3d.data.remote.mapper.SceneMapper.toDomain
+import com.spatiallm3d.data.source.DemoDataSource
 import com.spatiallm3d.domain.model.AnalysisResult
+import com.spatiallm3d.domain.model.DemoScene
 import com.spatiallm3d.domain.model.PointCloud
 import com.spatiallm3d.domain.repository.MlRepository
 
 /**
- * Implementation of MlRepository using the SpatialLM backend API.
+ * Implementation of MlRepository with hybrid Demo/Backend mode support.
  *
- * Handles network communication, error handling, and data transformation
- * between DTOs and domain models.
+ * Supports two operating modes:
+ * - DEMO: Load pre-loaded scenes from local assets (offline)
+ * - BACKEND: Call Render API for real-time processing (online)
  *
  * @property client HTTP client for API communication
+ * @property demoDataSource Data source for loading demo scenes
+ * @property dataMode Operating mode (DEMO or BACKEND)
  */
 class MlRepositoryImpl(
-    private val client: SpatialLMClient
+    private val client: SpatialLMClient,
+    private val demoDataSource: DemoDataSource? = null,
+    private val dataMode: DataMode = DataMode.DEMO  // Default: Demo Mode for MVP
 ) : MlRepository {
+
+    // Cache de escenas demo (cargadas una vez)
+    private var demoScenes: List<DemoScene>? = null
 
     override suspend fun analyzeScene(
         pointCloud: PointCloud,
@@ -27,9 +37,92 @@ class MlRepositoryImpl(
         detectObjects: Boolean,
         objectCategories: List<String>?
     ): Result<AnalysisResult> {
+        return when (dataMode) {
+            DataMode.DEMO -> analyzeDemoScene(pointCloud.filename)
+            DataMode.BACKEND -> analyzeBackendScene(pointCloud)
+        }
+    }
+
+    /**
+     * Modo DEMO: Cargar desde assets locales
+     */
+    private suspend fun analyzeDemoScene(filename: String?): Result<AnalysisResult> {
         return try {
+            if (demoDataSource == null) {
+                println("MlRepository: ⚠️ Demo mode enabled but DemoDataSource not provided")
+                println("  Falling back to local mock generation")
+                return Result.success(generateMockAnalysisFromPointCloud(PointCloud(emptyList(), com.spatiallm3d.domain.model.SourceType.LOCAL_FILE)))
+            }
+
+            // Cargar escenas si no están en cache
+            if (demoScenes == null) {
+                demoScenes = demoDataSource.loadDemoScenes()
+                println("MlRepository: Loaded ${demoScenes?.size} demo scenes")
+            }
+
+            // Buscar escena por filename
+            val sceneId = filename?.removeSuffix(".ply")
+            val scene = demoScenes?.find { it.id == sceneId }
+
+            if (scene != null) {
+                println("MlRepository: Loading demo scene: ${scene.name}")
+                val analysis = demoDataSource.loadSceneAnalysis(scene)
+
+                println("MlRepository: ✅ Demo scene loaded")
+                println("  - Walls: ${analysis.scene.walls.size}")
+                println("  - Doors: ${analysis.scene.doors.size}")
+                println("  - Windows: ${analysis.scene.windows.size}")
+                println("  - Objects: ${analysis.scene.objects.size}")
+
+                Result.success(analysis)
+            } else {
+                println("MlRepository: ⚠️ Scene not found: $sceneId")
+                Result.failure(SceneNotFoundException("Scene not found: $sceneId"))
+            }
+
+        } catch (e: Exception) {
+            println("MlRepository: ❌ Error loading demo scene: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Modo BACKEND: Llamar a Render API (código existente)
+     */
+    private suspend fun analyzeBackendScene(pointCloud: PointCloud): Result<AnalysisResult> {
+        return try {
+            // Extract scene ID from filename if available
+            val sceneId = pointCloud.filename?.removeSuffix(".ply")
+
+            if (sceneId != null) {
+                println("MlRepository: Attempting backend lookup for scene: $sceneId")
+
+                try {
+                    // Try to fetch pre-computed results from Render backend
+                    val response = client.getPrecomputedResult(sceneId)
+                    val analysisResult = response.toDomain()
+
+                    println("MlRepository: ✅ Loaded pre-computed data from backend")
+                    println("  - Walls: ${analysisResult.scene.walls.size}")
+                    println("  - Doors: ${analysisResult.scene.doors.size}")
+                    println("  - Windows: ${analysisResult.scene.windows.size}")
+                    println("  - Objects: ${analysisResult.scene.objects.size}")
+
+                    return Result.success(analysisResult)
+
+                } catch (e: Exception) {
+                    println("MlRepository: ⚠️ Backend lookup failed: ${e.message}")
+                    println("  Falling back to local mock generation")
+                }
+            } else {
+                println("MlRepository: No scene ID available, using local mock")
+            }
+
+            // Fallback: Generate mock from PointCloud
             val analysisResult = generateMockAnalysisFromPointCloud(pointCloud)
             Result.success(analysisResult)
+
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -238,4 +331,32 @@ class MlRepositoryImpl(
             pointCount = 0
         )
     }
+
+    /**
+     * Obtener lista de escenas demo disponibles
+     */
+    suspend fun getDemoScenes(): List<DemoScene> {
+        if (demoScenes == null && demoDataSource != null) {
+            demoScenes = demoDataSource.loadDemoScenes()
+        }
+        return demoScenes ?: emptyList()
+    }
 }
+
+/**
+ * Enum para controlar el modo de datos del repositorio
+ */
+enum class DataMode {
+    DEMO,       // Cargar desde assets locales (offline)
+    BACKEND     // Llamar a Render API (online)
+}
+
+/**
+ * Excepción cuando no se encuentra una escena demo
+ */
+class SceneNotFoundException(message: String) : Exception(message)
+
+/**
+ * Excepción para escenas inválidas
+ */
+class InvalidSceneException(message: String) : Exception(message)

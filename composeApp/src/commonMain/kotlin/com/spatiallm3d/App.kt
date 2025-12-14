@@ -5,7 +5,10 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spatiallm3d.data.parser.PlyParser
 import com.spatiallm3d.data.remote.client.SpatialLMClient
+import com.spatiallm3d.data.repository.DataMode
 import com.spatiallm3d.data.repository.MlRepositoryImpl
+import com.spatiallm3d.data.source.DemoDataSource
+import com.spatiallm3d.data.source.ResourceLoaderFactory
 import com.spatiallm3d.presentation.navigation.Screen
 import com.spatiallm3d.presentation.screens.AnalysisScreen
 import com.spatiallm3d.presentation.screens.HomeScreen
@@ -23,8 +26,25 @@ fun App() {
     MaterialTheme {
         // Initialize dependencies
         val client = remember { SpatialLMClient() }
-        val repository = remember { MlRepositoryImpl(client) }
-        val viewModel = remember { SceneViewModel(repository) }
+
+        // Create ResourceLoader (platform-specific)
+        val resourceLoader = ResourceLoaderFactory.create()
+
+        // Create DemoDataSource for loading local assets
+        val demoDataSource = remember(resourceLoader) {
+            DemoDataSource(resourceLoader)
+        }
+
+        // Create Repository with Demo Mode enabled by default
+        val repository = remember(client, demoDataSource) {
+            MlRepositoryImpl(
+                client = client,
+                demoDataSource = demoDataSource,
+                dataMode = DataMode.DEMO  // ⬅️ DEMO mode for MVP (change to BACKEND when ready)
+            )
+        }
+
+        val viewModel = remember(repository) { SceneViewModel(repository) }
 
         // Observe ViewModel state
         val sceneState by viewModel.sceneState.collectAsStateWithLifecycle()
@@ -51,11 +71,15 @@ fun App() {
                             pointCloudUrl = "sample_scene.ply"
                         )
                     },
-                    onFileSelected = { plyContent ->
+                    onFileSelected = { plyContent, filename ->
                         try {
-                            println("PLY file received: ${plyContent.size} bytes")
-                            val pointCloud = PlyParser.parseDownsampled(plyContent, maxPoints = 50000)
-                            println("PLY parsed: ${pointCloud.points.size} points")
+                            println("PLY file received: $filename (${plyContent.size} bytes)")
+                            val pointCloud = PlyParser.parseDownsampled(
+                                content = plyContent,
+                                maxPoints = 50000,
+                                filename = filename
+                            )
+                            println("PLY parsed: ${pointCloud.points.size} points, filename: ${pointCloud.filename}")
 
                             if (pointCloud.points.isEmpty()) {
                                 println("ERROR: PointCloud is empty after parsing")

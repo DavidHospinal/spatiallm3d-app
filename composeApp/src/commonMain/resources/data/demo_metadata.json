@@ -1,0 +1,64 @@
+{
+  "scenes": [
+    {
+      "id": "scene0000_00",
+      "name": "Dining Room",
+      "description": "Living room with dining area",
+      "rawImage": "images/raw/scene0000_00.png",
+      "dataFile": "data/scene0000_00_results.json",
+      "metadata": {
+        "originalPlySize": "10.9 MB",
+        "pointCount": 50000,
+        "captureDate": "2024-11-12"
+      }
+    },
+    {
+      "id": "scene0001_00",
+      "name": "Master Bedroom",
+      "description": "Bedroom suite with bathroom",
+      "rawImage": "images/raw/scene0001_00.png",
+      "dataFile": "data/scene0001_00_results.json",
+      "metadata": {
+        "originalPlySize": "49.7 MB",
+        "pointCount": 180000,
+        "captureDate": "2024-11-12"
+      }
+    },
+    {
+      "id": "scene0001_01",
+      "name": "Bathroom",
+      "description": "Full bathroom with fixtures",
+      "rawImage": "images/raw/scene0001_01.png",
+      "dataFile": "data/scene0001_01_results.json",
+      "metadata": {
+        "originalPlySize": "13.2 MB",
+        "pointCount": 55000,
+        "captureDate": "2024-11-12"
+      }
+    },
+    {
+      "id": "scene0002_00",
+      "name": "Living Room",
+      "description": "Spacious living area",
+      "rawImage": "images/raw/scene0002_00.png",
+      "dataFile": "data/scene0002_00_results.json",
+      "metadata": {
+        "originalPlySize": "22.2 MB",
+        "pointCount": 90000,
+        "captureDate": "2024-11-12"
+      }
+    },
+    {
+      "id": "scene0003_00",
+      "name": "Living Room Alt",
+      "description": "Alternative living room layout",
+      "rawImage": "images/raw/scene0003_00.png",
+      "dataFile": "data/scene0003_00_results.json",
+      "metadata": {
+        "originalPlySize": "13.5 MB",
+        "pointCount": 60000,
+        "captureDate": "2024-11-12"
+      }
+    }
+  ]
+}

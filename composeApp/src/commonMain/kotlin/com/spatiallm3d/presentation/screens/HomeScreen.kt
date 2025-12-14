@@ -18,12 +18,12 @@ import kotlinx.coroutines.launch
  * Supports analyzing sample scenes or uploading custom PLY files.
  *
  * @param onAnalyzeClick Callback invoked when the analyze sample button is clicked
- * @param onFileSelected Callback invoked when a PLY file is selected
+ * @param onFileSelected Callback invoked when a PLY file is selected (content, filename)
  */
 @Composable
 fun HomeScreen(
     onAnalyzeClick: () -> Unit,
-    onFileSelected: ((ByteArray) -> Unit)? = null
+    onFileSelected: ((ByteArray, String?) -> Unit)? = null
 ) {
     val filePicker = remember { FilePicker() }
     val scope = rememberCoroutineScope()
@@ -94,7 +94,11 @@ fun HomeScreen(
                             isPickingFile = false
                             when (result) {
                                 is FilePickerResult.Success -> {
-                                    onFileSelected?.invoke(result.content)
+                                    // Extract filename from path
+                                    val filename = result.path.substringAfterLast("/")
+                                        .substringAfterLast("\\") // Handle Windows paths
+                                    println("HomeScreen: File selected: $filename (${result.content.size} bytes)")
+                                    onFileSelected?.invoke(result.content, filename)
                                 }
                                 is FilePickerResult.Error -> {
                                     errorMessage = result.message
