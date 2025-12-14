@@ -9,7 +9,7 @@ echo Ejecutando aplicacion Desktop...
 echo JAVA_HOME=%JAVA_HOME%
 echo.
 
-gradlew.bat :composeApp:run
+gradlew.bat :composeApp:runDistributable
 
 if %ERRORLEVEL% NEQ 0 (
     echo.

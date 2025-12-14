@@ -9,11 +9,14 @@ echo Compilando proyecto KMP para Desktop/JVM...
 echo JAVA_HOME=%JAVA_HOME%
 echo.
 
-gradlew.bat :composeApp:compileKotlinJvm
+REM Limpiar cache de configuracion si es necesario
+gradlew.bat clean :composeApp:compileKotlinJvm
 
 if %ERRORLEVEL% EQU 0 (
     echo.
     echo Compilacion exitosa
+    echo.
+    echo Para ejecutar: .\run-desktop.bat
 ) else (
     echo.
     echo Error en compilacion
