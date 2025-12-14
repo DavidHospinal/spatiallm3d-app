@@ -49,17 +49,3 @@ class DemoDataSource(
         return resourceLoader.loadBytes(scene.rawImage)
     }
 }
-
-/**
- * Interfaz para cargar recursos desde assets.
- *
- * Cada plataforma implementará esto de forma específica:
- * - Android: AssetManager
- * - iOS: Bundle.main
- * - Desktop: ClassLoader.getResourceAsStream
- * - Web: fetch API
- */
-expect class ResourceLoader() {
-    suspend fun loadString(path: String): String
-    suspend fun loadBytes(path: String): ByteArray
-}

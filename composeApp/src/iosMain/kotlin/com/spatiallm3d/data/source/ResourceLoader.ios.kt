@@ -81,3 +81,7 @@ actual class ResourceLoader {
         }
     }
 }
+
+actual class ResourceLoadException actual constructor(message: String, cause: Throwable?) : Exception(message, cause) {
+    actual constructor(message: String) : this(message, null)
+}

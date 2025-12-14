@@ -28,4 +28,6 @@ actual class ResourceLoader(private val context: Context) {
     }
 }
 
-class ResourceLoadException(message: String, cause: Throwable? = null) : Exception(message, cause)
+actual class ResourceLoadException actual constructor(message: String, cause: Throwable?) : Exception(message, cause) {
+    actual constructor(message: String) : this(message, null)
+}
