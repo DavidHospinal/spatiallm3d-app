@@ -93,10 +93,12 @@ fun ResultsScreenWithVisualization(
 
             // Tab content
             when (selectedTab) {
-                0 -> Scene3DView(
-                    sceneStructure = result.scene,
-                    modifier = Modifier.weight(1f)
-                )
+                0 -> result.scene?.let { scene ->
+                    Scene3DView(
+                        sceneStructure = scene,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
                 1 -> AccessibilityTab(
                     result = result,
@@ -226,7 +228,7 @@ private fun AccessibilityTab(
 
         item {
             Text(
-                text = "We detected ${result.scene.objects.size} items in your room:",
+                text = "We detected ${result.scene?.objects?.size ?: 0} items in your room:",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -237,7 +239,7 @@ private fun AccessibilityTab(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                result.scene.objects.take(6).forEach { obj ->
+                result.scene?.objects?.take(6)?.forEach { obj ->
                     ObjectCategoryChip(
                         category = obj.objectClass,
                         confidence = obj.confidence
@@ -263,18 +265,19 @@ private fun DetailsTab(
         }
 
         item {
+            val walls = result.scene?.walls ?: emptyList()
             DetailCard("Walls", listOf(
-                "Found ${result.scene.walls.size} walls in this room",
-                "Total wall area: ${result.scene.walls.sumOf { it.area.toDouble() }.format(1)} square meters",
-                "Average height: ${result.scene.walls.map { it.height }.average().format(2)} meters"
+                "Found ${walls.size} walls in this room",
+                "Total wall area: ${walls.sumOf { it.area.toDouble() }.format(1)} square meters",
+                "Average height: ${if (walls.isNotEmpty()) walls.map { it.height }.average().format(2) else "0.00"} meters"
             ))
         }
 
         item {
-            SectionHeader("Entryways (${result.scene.doors.size})")
+            SectionHeader("Entryways (${result.scene?.doors?.size ?: 0})")
         }
 
-        items(result.scene.doors) { door ->
+        items(result.scene?.doors ?: emptyList()) { door ->
             val safetyStatus = when {
                 door.width >= 0.8f -> "Wheelchair accessible"
                 door.width >= 0.7f -> "Standard doorway"
@@ -290,10 +293,10 @@ private fun DetailsTab(
         }
 
         item {
-            SectionHeader("Windows (${result.scene.windows.size})")
+            SectionHeader("Windows (${result.scene?.windows?.size ?: 0})")
         }
 
-        items(result.scene.windows) { window ->
+        items(result.scene?.windows ?: emptyList()) { window ->
             DetailCard("Window ${window.id.replace("window_", "#")}", listOf(
                 "Size: ${window.width.format(2)}m x ${window.height.format(2)}m",
                 "Area: ${window.area.format(2)} square meters",
@@ -302,10 +305,10 @@ private fun DetailsTab(
         }
 
         item {
-            SectionHeader("Furniture & Objects (${result.scene.objects.size})")
+            SectionHeader("Furniture & Objects (${result.scene?.objects?.size ?: 0})")
         }
 
-        items(result.scene.objects) { obj ->
+        items(result.scene?.objects ?: emptyList()) { obj ->
             val humanName = toHumanReadableObjectName(obj.objectClass)
             val confidence = (obj.confidence * 100).toInt()
             val safetyNote = getObjectSafetyNote(obj.objectClass)
@@ -373,8 +376,8 @@ private fun calculateDetailedAccessibilityScore(result: AnalysisResult): Accessi
     val issues = mutableListOf<String>()
 
     // Check doorways for accessibility
-    val narrowDoors = result.scene.doors.count { it.width < 0.8f }
-    val veryNarrowDoors = result.scene.doors.count { it.width < 0.7f }
+    val narrowDoors = result.scene?.doors?.count { it.width < 0.8f } ?: 0
+    val veryNarrowDoors = result.scene?.doors?.count { it.width < 0.7f } ?: 0
 
     when {
         veryNarrowDoors > 0 -> {
@@ -388,9 +391,9 @@ private fun calculateDetailedAccessibilityScore(result: AnalysisResult): Accessi
     }
 
     // Check for potential obstacles
-    val furnitureCount = result.scene.objects.count {
+    val furnitureCount = result.scene?.objects?.count {
         it.objectClass.lowercase() in listOf("chair", "table", "sofa", "desk", "cabinet")
-    }
+    } ?: 0
 
     if (furnitureCount > 15) {
         score -= 15
@@ -401,9 +404,9 @@ private fun calculateDetailedAccessibilityScore(result: AnalysisResult): Accessi
     }
 
     // Check for hazards
-    val hasStairs = result.scene.objects.any {
+    val hasStairs = result.scene?.objects?.any {
         it.objectClass.lowercase() in listOf("stairs", "staircase")
-    }
+    } ?: false
 
     if (hasStairs) {
         score -= 10
@@ -421,9 +424,9 @@ private fun calculateDetailedAccessibilityScore(result: AnalysisResult): Accessi
 
     val interpretation = buildString {
         append("Based on our analysis of ")
-        append("${result.scene.walls.size} walls, ")
-        append("${result.scene.doors.size} doorways, ")
-        append("and ${result.scene.objects.size} objects, ")
+        append("${result.scene?.walls?.size ?: 0} walls, ")
+        append("${result.scene?.doors?.size ?: 0} doorways, ")
+        append("and ${result.scene?.objects?.size ?: 0} objects, ")
 
         if (finalScore >= 85) {
             append("your space is well-designed for accessibility. ")
@@ -462,7 +465,7 @@ private fun generateNaturalLanguageRecommendations(result: AnalysisResult): List
     val recommendations = mutableListOf<Recommendation>()
 
     // Check each door
-    result.scene.doors.forEach { door ->
+    result.scene?.doors?.forEach { door ->
         when {
             door.width < 0.7f -> {
                 recommendations.add(
@@ -486,7 +489,7 @@ private fun generateNaturalLanguageRecommendations(result: AnalysisResult): List
     }
 
     // Check for clutter
-    val objectCount = result.scene.objects.size
+    val objectCount = result.scene?.objects?.size ?: 0
     if (objectCount > 15) {
         recommendations.add(
             Recommendation(
@@ -498,9 +501,9 @@ private fun generateNaturalLanguageRecommendations(result: AnalysisResult): List
     }
 
     // Check for stairs
-    val hasStairs = result.scene.objects.any {
+    val hasStairs = result.scene?.objects?.any {
         it.objectClass.lowercase() in listOf("stairs", "staircase")
-    }
+    } ?: false
 
     if (hasStairs) {
         recommendations.add(

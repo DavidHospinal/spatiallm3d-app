@@ -69,10 +69,10 @@ class MlRepositoryImpl(
                 val analysis = demoDataSource.loadSceneAnalysis(scene)
 
                 println("MlRepository: ✅ Demo scene loaded")
-                println("  - Walls: ${analysis.scene.walls.size}")
-                println("  - Doors: ${analysis.scene.doors.size}")
-                println("  - Windows: ${analysis.scene.windows.size}")
-                println("  - Objects: ${analysis.scene.objects.size}")
+                println("  - Walls: ${analysis.scene?.walls?.size ?: 0}")
+                println("  - Doors: ${analysis.scene?.doors?.size ?: 0}")
+                println("  - Windows: ${analysis.scene?.windows?.size ?: 0}")
+                println("  - Objects: ${analysis.scene?.objects?.size ?: 0}")
 
                 Result.success(analysis)
             } else {
@@ -104,10 +104,10 @@ class MlRepositoryImpl(
                     val analysisResult = response.toDomain()
 
                     println("MlRepository: ✅ Loaded pre-computed data from backend")
-                    println("  - Walls: ${analysisResult.scene.walls.size}")
-                    println("  - Doors: ${analysisResult.scene.doors.size}")
-                    println("  - Windows: ${analysisResult.scene.windows.size}")
-                    println("  - Objects: ${analysisResult.scene.objects.size}")
+                    println("  - Walls: ${analysisResult.scene?.walls?.size ?: 0}")
+                    println("  - Doors: ${analysisResult.scene?.doors?.size ?: 0}")
+                    println("  - Windows: ${analysisResult.scene?.windows?.size ?: 0}")
+                    println("  - Objects: ${analysisResult.scene?.objects?.size ?: 0}")
 
                     return Result.success(analysisResult)
 

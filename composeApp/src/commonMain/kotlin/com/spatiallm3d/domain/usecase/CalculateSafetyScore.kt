@@ -48,10 +48,10 @@ class CalculateSafetyScore {
             score = finalScore,
             level = getSafetyLevel(finalScore),
             checks = checks,
-            objectsDetected = analysis.scene.objects.size,
-            wallsDetected = analysis.scene.walls.size,
-            doorsDetected = analysis.scene.doors.size,
-            windowsDetected = analysis.scene.windows.size,
+            objectsDetected = analysis.scene?.objects?.size ?: 0,
+            wallsDetected = analysis.scene?.walls?.size ?: 0,
+            doorsDetected = analysis.scene?.doors?.size ?: 0,
+            windowsDetected = analysis.scene?.windows?.size ?: 0,
             recommendations = generateRecommendations(checks)
         )
     }
@@ -59,7 +59,7 @@ class CalculateSafetyScore {
     private fun checkDoors(analysis: AnalysisResult): List<SafetyCheck> {
         val checks = mutableListOf<SafetyCheck>()
 
-        if (analysis.scene.doors.isEmpty()) {
+        if (analysis.scene?.doors?.isEmpty() != false) {
             checks.add(
                 SafetyCheck(
                     category = "Accessibility",
@@ -70,7 +70,7 @@ class CalculateSafetyScore {
                 )
             )
         } else {
-            analysis.scene.doors.forEach { door ->
+            analysis.scene?.doors?.forEach { door ->
                 val isWideEnough = door.width >= 0.9f // Estándar de accesibilidad
                 checks.add(
                     SafetyCheck(
@@ -91,7 +91,7 @@ class CalculateSafetyScore {
     private fun checkWindows(analysis: AnalysisResult): List<SafetyCheck> {
         val checks = mutableListOf<SafetyCheck>()
 
-        if (analysis.scene.windows.isEmpty()) {
+        if (analysis.scene?.windows?.isEmpty() != false) {
             checks.add(
                 SafetyCheck(
                     category = "Ventilation",
@@ -105,7 +105,7 @@ class CalculateSafetyScore {
             checks.add(
                 SafetyCheck(
                     category = "Ventilation",
-                    description = "${analysis.scene.windows.size} window(s) detected - Good ventilation",
+                    description = "${analysis.scene?.windows?.size ?: 0} window(s) detected - Good ventilation",
                     passed = true,
                     severity = SafetySeverity.NONE,
                     penaltyPoints = 0
@@ -120,9 +120,9 @@ class CalculateSafetyScore {
         val checks = mutableListOf<SafetyCheck>()
 
         // Detectar objetos que puedan ser obstáculos en rutas
-        val potentialObstacles = analysis.scene.objects.filter { obj ->
+        val potentialObstacles = analysis.scene?.objects?.filter { obj ->
             obj.objectClass.lowercase() in listOf("chair", "table", "cabinet", "box")
-        }
+        } ?: emptyList()
 
         if (potentialObstacles.size > 10) {
             checks.add(
@@ -152,7 +152,7 @@ class CalculateSafetyScore {
     private fun checkEmergencyExits(analysis: AnalysisResult): List<SafetyCheck> {
         val checks = mutableListOf<SafetyCheck>()
 
-        val doorCount = analysis.scene.doors.size
+        val doorCount = analysis.scene?.doors?.size ?: 0
 
         if (doorCount < 1) {
             checks.add(

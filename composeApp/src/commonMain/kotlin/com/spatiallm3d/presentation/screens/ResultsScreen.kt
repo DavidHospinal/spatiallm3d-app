@@ -76,36 +76,36 @@ fun ResultsScreen(
             ) {
                 // Walls section
                 item {
-                    SectionHeader("Walls (${result.scene.walls.size})")
+                    SectionHeader("Walls (${result.scene?.walls?.size ?: 0})")
                 }
-                items(result.scene.walls) { wall ->
+                items(result.scene?.walls ?: emptyList()) { wall ->
                     WallCard(wall)
                 }
 
                 // Doors section
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
-                    SectionHeader("Doors (${result.scene.doors.size})")
+                    SectionHeader("Doors (${result.scene?.doors?.size ?: 0})")
                 }
-                items(result.scene.doors) { door ->
+                items(result.scene?.doors ?: emptyList()) { door ->
                     DoorCard(door)
                 }
 
                 // Windows section
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
-                    SectionHeader("Windows (${result.scene.windows.size})")
+                    SectionHeader("Windows (${result.scene?.windows?.size ?: 0})")
                 }
-                items(result.scene.windows) { window ->
+                items(result.scene?.windows ?: emptyList()) { window ->
                     WindowCard(window)
                 }
 
                 // Objects section - ALL objects with their categories
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
-                    SectionHeader("Objects (${result.scene.objects.size})")
+                    SectionHeader("Objects (${result.scene?.objects?.size ?: 0})")
                 }
-                items(result.scene.objects) { obj ->
+                items(result.scene?.objects ?: emptyList()) { obj ->
                     ObjectCard(obj)
                 }
             }
