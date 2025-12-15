@@ -35,12 +35,15 @@ fun App() {
             DemoDataSource(resourceLoader)
         }
 
-        // Create Repository with Demo Mode enabled by default
-        val repository = remember(client, demoDataSource) {
+        // Data mode state (DEMO for sample scenes, BACKEND for custom files)
+        var dataMode by remember { mutableStateOf(DataMode.DEMO) }
+
+        // Create Repository with dynamic mode
+        val repository = remember(client, demoDataSource, dataMode) {
             MlRepositoryImpl(
                 client = client,
                 demoDataSource = demoDataSource,
-                dataMode = DataMode.DEMO  // ⬅️ DEMO mode for MVP (change to BACKEND when ready)
+                dataMode = dataMode
             )
         }
 
@@ -67,6 +70,8 @@ fun App() {
             Screen.Home -> {
                 HomeScreen(
                     onAnalyzeClick = {
+                        // Use DEMO mode for sample scene
+                        dataMode = DataMode.DEMO
                         viewModel.analyzeScene(
                             pointCloudUrl = "sample_scene.ply"
                         )
@@ -74,6 +79,11 @@ fun App() {
                     onFileSelected = { plyContent, filename ->
                         try {
                             println("PLY file received: $filename (${plyContent.size} bytes)")
+
+                            // Switch to BACKEND mode for custom file uploads
+                            dataMode = DataMode.BACKEND
+                            println("Switched to BACKEND mode for custom file analysis")
+
                             val pointCloud = PlyParser.parseDownsampled(
                                 content = plyContent,
                                 maxPoints = 50000,
@@ -86,7 +96,7 @@ fun App() {
                                 viewModel.resetState()
                                 currentScreen = Screen.Home
                             } else {
-                                println("Analyzing point cloud...")
+                                println("Analyzing point cloud with backend...")
                                 viewModel.analyzeLocalPointCloud(pointCloud)
                             }
                         } catch (e: Exception) {
