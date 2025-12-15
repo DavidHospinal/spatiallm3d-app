@@ -7,30 +7,36 @@ import kotlinx.serialization.Serializable
  *
  * Contains the detected scene structure along with metadata about the analysis.
  *
- * @property scene Detected structural elements and objects
- * @property inferenceTime Time taken for ML inference in seconds
- * @property modelVersion Version identifier of the SpatialLM model used
- * @property pointCount Number of points in the analyzed point cloud
+ * @property scene Detected structural elements and objects (nullable if backend doesn't return it)
+ * @property inferenceTime Time taken for ML inference in seconds (defaults to 0.0 if not provided)
+ * @property modelVersion Version identifier of the SpatialLM model used (defaults to "unknown" if not provided)
+ * @property pointCount Number of points in the analyzed point cloud (defaults to 0 if not provided)
  */
 @Serializable
 data class AnalysisResult(
-    val scene: SceneStructure,
-    val inferenceTime: Float,
-    val modelVersion: String,
-    val pointCount: Int
+    val scene: SceneStructure? = null,
+    val inferenceTime: Float = 0.0f,
+    val modelVersion: String = "unknown",
+    val pointCount: Int = 0
 ) {
     /**
      * Returns a summary string for logging or display.
+     * Handles nullable scene gracefully.
      */
     val summary: String
         get() = buildString {
             append("Model: $modelVersion\n")
             append("Points: $pointCount\n")
             append("Inference: ${inferenceTime}s\n")
-            append("Detected: ${scene.walls.size} walls, ")
-            append("${scene.doors.size} doors, ")
-            append("${scene.windows.size} windows, ")
-            append("${scene.objects.size} objects")
+
+            if (scene != null) {
+                append("Detected: ${scene.walls.size} walls, ")
+                append("${scene.doors.size} doors, ")
+                append("${scene.windows.size} windows, ")
+                append("${scene.objects.size} objects")
+            } else {
+                append("Scene data not available")
+            }
         }
 
     /**
@@ -38,4 +44,10 @@ data class AnalysisResult(
      */
     val isFastInference: Boolean
         get() = inferenceTime < 5f
+
+    /**
+     * Checks if the analysis result is valid (has scene data).
+     */
+    val isValid: Boolean
+        get() = scene != null
 }
