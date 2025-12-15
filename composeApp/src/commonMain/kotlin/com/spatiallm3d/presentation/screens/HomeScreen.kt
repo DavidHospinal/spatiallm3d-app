@@ -8,8 +8,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.spatiallm3d.platform.FilePicker
 import com.spatiallm3d.platform.FilePickerResult
+import com.spatiallm3d.platform.rememberPlyFilePicker
 import kotlinx.coroutines.launch
 
 /**
@@ -25,7 +25,8 @@ fun HomeScreen(
     onAnalyzeClick: () -> Unit,
     onFileSelected: ((ByteArray, String?) -> Unit)? = null
 ) {
-    val filePicker = remember { FilePicker() }
+    // Use platform-specific file picker
+    val plyFilePicker = rememberPlyFilePicker()
     val scope = rememberCoroutineScope()
     var isPickingFile by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -84,28 +85,26 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // File picker button (Desktop only for now)
+            // File picker button (works on all platforms)
             OutlinedButton(
                 onClick = {
-                    scope.launch {
-                        isPickingFile = true
-                        errorMessage = null
-                        filePicker.pickPlyFile { result ->
-                            isPickingFile = false
-                            when (result) {
-                                is FilePickerResult.Success -> {
-                                    // Extract filename from path
-                                    val filename = result.path.substringAfterLast("/")
-                                        .substringAfterLast("\\") // Handle Windows paths
-                                    println("HomeScreen: File selected: $filename (${result.content.size} bytes)")
-                                    onFileSelected?.invoke(result.content, filename)
-                                }
-                                is FilePickerResult.Error -> {
-                                    errorMessage = result.message
-                                }
-                                FilePickerResult.Cancelled -> {
-                                    // User cancelled
-                                }
+                    isPickingFile = true
+                    errorMessage = null
+                    plyFilePicker.pickFile { result ->
+                        isPickingFile = false
+                        when (result) {
+                            is FilePickerResult.Success -> {
+                                // Extract filename from path
+                                val filename = result.path.substringAfterLast("/")
+                                    .substringAfterLast("\\") // Handle Windows paths
+                                println("HomeScreen: File selected: $filename (${result.content.size} bytes)")
+                                onFileSelected?.invoke(result.content, filename)
+                            }
+                            is FilePickerResult.Error -> {
+                                errorMessage = result.message
+                            }
+                            FilePickerResult.Cancelled -> {
+                                // User cancelled
                             }
                         }
                     }
